@@ -346,7 +346,6 @@ int32_t	m90e26Init(uint8_t eChan) {
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
-
 // Energy returns kWh if PL constant set to 1000imp/kWh, cleared after reading
 #ifndef	M90E26_ENERGY_SCALE
 //	#define	M90E26_ENERGY_SCALE		10000.0			// default to KWHr

@@ -22,10 +22,6 @@
  * m90e26.h
  */
 
-/**************************************************************************************************
- *
- *
- *************************************************************************************************/
 #pragma		once
 
 #include	<stdint.h>
@@ -40,6 +36,17 @@
  * https://imgur.com/a/BsEUM
  * https://www.reddit.com/r/diyelectronics/
  */
+
+// ##################################### BUILD definitions #########################################
+
+#define M90E26_CALIB_TABLE	0							// 0=AMM, 1=Tisham, 2=DEFAULT
+// Only effective if (M90E26_CALIB_TABLE == 0) above !!!
+#define	M90E26_CALIB_SOFT	0							// enable software based calibration
+#define	M90E26_CALIB_ITER	100							// number of READ iterations to determine mean value
+
+#define	M90E26_STAT_INTVL	pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
+#define	M90E25_RESOLUTION	0							// enable additional LSB values to be included
+
 // ############################################# Macros ############################################
 
 #define SOFTRESET			0x00	// Software Reset
@@ -53,15 +60,15 @@
 #define CALSTART			0x20 	// Calibration Start Command
 #define PLconstH			0x21 	// High Word of PL_Constant
 #define PLconstL			0x22 	// Low Word of PL_Constant
-#define Lgain				0x23 	// L Line Calibration Gain
-#define Lphi				0x24 	// L Line Calibration Angle
-#define Ngain				0x25 	// N Line Calibration Gain
-#define Nphi				0x26 	// N Line Calibration Angle
-#define PStartTh			0x27 	// Active Startup Power Threshold
-#define PNolTh				0x28 	// Active No-Load Power Threshold
-#define QStartTh			0x29 	// Reactive Startup Power Threshold
-#define QNolTh				0x2A 	// Reactive No-Load Power Threshold
-#define MMode				0x2B 	// Metering Mode Configuration
+#define L_GAIN				0x23 	// L Line Calibration Gain
+#define L_PHI				0x24 	// L Line Calibration Angle
+#define N_GAIN				0x25 	// N Line Calibration Gain
+#define N_PHI				0x26 	// N Line Calibration Angle
+#define P_SUP_TH			0x27 	// Active Startup Power Threshold
+#define P_NOL_TH			0x28 	// Active No-Load Power Threshold
+#define Q_SUP_TH			0x29 	// Reactive Startup Power Threshold
+#define Q_NOL_TH			0x2A 	// Reactive No-Load Power Threshold
+#define MET_MODE			0x2B 	// Metering Mode Configuration
 #define CRC_1				0x2C 	// Checksum 1
 
 #define ADJSTART			0x30 	// Measurement Calibration Start Command
@@ -154,13 +161,17 @@ enum {
  	eP_FACTOR_L,
  	eP_ANGLE_L,
  	eP_APP_L,
-// Neutral Line
+#if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
  	eP_FACTOR_N,
  	eP_ANGLE_N,
  	eP_APP_N,
+#endif
+#if		(M90E25_RESOLUTION == 1)			// extra resolution from LSB
+ 	eLSB,
+#endif
 	eNUM_DATA_REG
  } ;
 
@@ -178,6 +189,7 @@ typedef struct data_reg_s {
  	float		value[halHAS_M90E26] ;
  	uint16_t	raw_val[halHAS_M90E26] ;
  	uint8_t		addr ;
+ 	uint8_t		rel_addr ;			// used only with LSB to link to related register
  } data_reg_t ;
 
 typedef struct m90e26_s {
@@ -203,7 +215,8 @@ void	m90e26DataConvertAll(uint8_t eChan) ;
 
 int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) ;
 int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) ;
-void	m90e26SetPowerOffsetCompensation(void) ;
+
+void	m90e26SetOffsetCompensation(uint8_t eChan) ;
 
 uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
@@ -236,4 +249,3 @@ void	m90e26ReportCalib(uint8_t eChan) ;
 void	m90e26ReportAdjust(uint8_t eChan) ;
 void	m90e26Report(void) ;
 void	m90e26Display(void) ;
-void	m90e26DisplayInfo(void) ;
