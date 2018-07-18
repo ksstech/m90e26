@@ -45,7 +45,8 @@
 #define	M90E26_CALIB_ITER	100							// number of READ iterations to determine mean value
 
 #define	M90E26_STAT_INTVL	pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
-#define	M90E25_RESOLUTION	0							// enable additional LSB values to be included
+#define	M90E26_RESOLUTION	1							// enable additional LSB values to be included
+#define	M90E26_LAST_DATA	1							// enable support for LASTDATA verification
 
 // ############################################# Macros ############################################
 
@@ -161,6 +162,7 @@ enum {
  	eP_FACTOR_L,
  	eP_ANGLE_L,
  	eP_APP_L,
+
 #if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
@@ -169,13 +171,72 @@ enum {
  	eP_ANGLE_N,
  	eP_APP_N,
 #endif
-#if		(M90E25_RESOLUTION == 1)			// extra resolution from LSB
+
+#if		(M90E26_RESOLUTION == 1)			// extra resolution from LSB
  	eLSB,
+#endif
+
+#if		(M90E26_LAST_DATA == 1)
+	eLAST_DATA,
 #endif
 	eNUM_DATA_REG
  } ;
 
 // ######################################### Structures ############################################
+
+typedef union sysstatus_u {
+	struct {
+		uint8_t		CalErr	: 2 ;
+		uint8_t		AdjErr	: 2 ;
+		uint8_t		r1		: 4 ;
+		uint8_t		LnChge	: 1 ;
+		uint8_t		RevQchg	: 1 ;
+		uint8_t		RevPchg	: 1 ;
+		uint8_t		r2		: 3 ;
+		uint8_t		SagWarn	: 1 ;
+		uint8_t		r3 		: 1 ;
+	};
+	uint16_t	val ;
+} sysstatus_t ;
+
+union funcenab_u {
+	struct {
+		uint16_t	r1		: 10 ;
+		uint8_t		SagEn	: 1 ;
+		uint8_t		SagWo	: 1 ;
+		uint8_t		RevQen	: 1 ;
+		uint8_t		RevPen	: 1 ;
+		uint8_t		r2 		: 2 ;
+	};
+	uint16_t	val ;
+} ;
+
+union met_mode_u {
+	struct {
+		uint8_t		Lgain	: 3 ;
+		uint8_t		Ngain	: 2 ;
+		uint8_t		LNSel	: 1 ;
+		uint8_t		DisHPF	: 2 ;
+		uint8_t		Amod	: 1 ;
+		uint8_t		Rmod	: 1 ;
+		uint8_t		ZXCon	: 2 ;
+		uint8_t		Pthres	: 4 ;
+	};
+	uint16_t	val ;
+} ;
+
+typedef union enstatus_u {
+	struct {
+		uint8_t		Qnoload	: 1 ;
+		uint8_t		Pnoload	: 1 ;
+		uint8_t		RevQ	: 1 ;
+		uint8_t		RevP	: 1 ;
+		uint8_t		Line	: 1 ;
+		uint16_t	r1		: 9 ;
+		uint8_t		LNMode	: 2 ;
+	};
+	uint16_t	val ;
+} enstatus_t ;
 
 typedef struct conf_reg_s {
  	uint8_t		addr ;
@@ -186,10 +247,16 @@ typedef struct conf_reg_s {
 #define	MAKE_DATA_REG(x)		{ .addr = x },
 
 typedef struct data_reg_s {
+#if 1
+ 	uint16_t	raw_val ;
+ 	uint8_t		addr ;
+ 	uint8_t		rel_addr ;			// used only with LSB to link to related register
+#else
  	float		value[halHAS_M90E26] ;
  	uint16_t	raw_val[halHAS_M90E26] ;
  	uint8_t		addr ;
  	uint8_t		rel_addr ;			// used only with LSB to link to related register
+#endif
  } data_reg_t ;
 
 typedef struct m90e26_s {

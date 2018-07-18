@@ -58,6 +58,7 @@
 #define	m90e26DEBUG_WRITE			(m90e26DEBUG & 0x0008)
 
 #define	m90e26DEBUG_TIMING			(m90e26DEBUG & 0x0010)
+#define	m90e26DEBUG_CONVERT			(m90e26DEBUG & 0x0020)
 
 // ###################################### Private variables #######################################
 
@@ -108,6 +109,8 @@ const conf_reg_t CalibMeter[] = {
 	{ CALSTART,		0,	STDCOD },
 	{ PLconstH,		0,	0x00B9 },
 	{ PLconstL, 	0,	0xC1F3 },
+	{ P_NOL_TH,		0,	0x8100 },					// Guess
+	{ Q_NOL_TH,		0,	0x8100 },					// Guess
 
 #elif	(M90E26_CALIB_TABLE == 1)					// Tisham values
 	{ SOFTRESET,	0,	RSTCOD },
@@ -196,6 +199,7 @@ data_reg_t	m90e26Data[] = {
 	[eP_FACTOR_L]	=	MAKE_DATA_REG(P_FACTOR_L)
 	[eP_ANGLE_L]	=	MAKE_DATA_REG(P_ANGLE_L)
 	[eP_APP_L]		=	MAKE_DATA_REG(P_APP_L)
+
 #if		(halUSE_M90E26_NEUTRAL == 1)
 	[eI_RMS_N]		=	MAKE_DATA_REG(I_RMS_N)
 	[eP_ACT_N]		=	MAKE_DATA_REG(P_ACT_N)
@@ -204,8 +208,13 @@ data_reg_t	m90e26Data[] = {
 	[eP_ANGLE_N]	=	MAKE_DATA_REG(P_ANGLE_N)
 	[eP_APP_N]		=	MAKE_DATA_REG(P_APP_N)
 #endif
-#if		(M90E25_RESOLUTION == 1)
+
+#if		(M90E26_RESOLUTION == 1)
  	[eLSB]			=	MAKE_DATA_REG(LSB)
+#endif
+
+#if		(M90E26_LAST_DATA == 1)
+	[eLAST_DATA]	=	MAKE_DATA_REG(LASTDATA)
 #endif
 } ;
 
@@ -244,7 +253,7 @@ uint16_t CurValue = m90e26Read(eChan, Addr) ;
 
 // ############################## initialization and (re)configuration #############################
 
-void m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
+void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
 	uint16_t CurAmps, CurGain ;
 	uint32_t Factor1, Factor2 ;
 
@@ -257,14 +266,10 @@ void m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint
 	PRINT("Ch %d: Il=0x%04x  Gl=0x%04x  F1=0x%08x  F2=0x%04x\n", eChan, CurAmps, CurGain, Factor1, Factor2) ;
 }
 
-void m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
-	uint16_t NewOffset ;
-	uint32_t SumOffset ;
-	int32_t i ;
-	for (i = 0, SumOffset = 0; i < M90E26_CALIB_ITER; i++) {
-		SumOffset += m90e26Read(eChan, RegPOWER) ;
-	}
-	NewOffset = ~(SumOffset / M90E26_CALIB_ITER) ;
+void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
+	uint32_t SumOffset = 0 ;
+	for (int32_t i = 0; i < M90E26_CALIB_ITER; i++)		SumOffset += m90e26Read(eChan, RegPOWER) ;
+	uint16_t NewOffset = ~(SumOffset / M90E26_CALIB_ITER) ;
 	m90e26Write(eChan, RegOFST, NewOffset) ;
 	PRINT("Ch %d: Rr=%02x  Rw=%02x  %dx  Sum=0x%08x  Ofst=0x%04x\n", eChan, RegPOWER, RegOFST, M90E26_CALIB_ITER, SumOffset, NewOffset) ;
 }
@@ -275,12 +280,17 @@ void m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
 uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
 	uint8_t Lcrc = 0, Hcrc = 0 ;
 	uint16_t RegData[Count] ;
-	// read the range of registers
-	for (int32_t i = 0; i < Count; i++)		RegData[i] = m90e26Read(eChan, Addr0 + i) ;
-	// HI bytes: MOD256 sum & XOR
-	for (int32_t i = 0; i < Count; i++) {	Lcrc += RegData[i] >> 8 ;	Hcrc ^= RegData[i] >> 8 ; }
-	// LO bytes: MOD256 sum & XOR
-	for (int32_t i = 0; i < Count; i++) {	Lcrc += RegData[i] & 0xFF ;	Hcrc ^= RegData[i] & 0xFF ; }
+	for (int32_t i = 0; i < Count; i++) {				// read the range of registers
+		RegData[i] = m90e26Read(eChan, Addr0 + i) ;
+	}
+	for (int32_t i = 0; i < Count; i++) {				// HI bytes: MOD256 sum & XOR
+		Lcrc += RegData[i] >> 8 ;
+		Hcrc ^= RegData[i] >> 8 ;
+	}
+	for (int32_t i = 0; i < Count; i++) {				// LO bytes: MOD256 sum & XOR
+		Lcrc += RegData[i] & 0xFF ;
+		Hcrc ^= RegData[i] & 0xFF ;
+	}
 	IF_PRINT(m90e26DEBUG_RESULT, "CRC=%04x from %-'h", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
 	return (Hcrc << 8) | Lcrc ;
 }
@@ -299,16 +309,12 @@ int32_t	m90e26Init(uint8_t eChan) {
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
 
 	// write the configuration registers with METER calibration data
-	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeter); i++) {
-		m90e26Write(eChan, CalibMeter[i].addr, CalibMeter[i].raw_val) ;
-	}
+	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeter); i++)	m90e26Write(eChan, CalibMeter[i].addr, CalibMeter[i].raw_val) ;
 	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
 
 #if		(M90E26_CALIB_TABLE == 0) && (M90E26_CALIB_SOFT == 1)
 	// write the configuration registers with MEASURE calibration data
-	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeasure); i++) {
-		m90e26Write(eChan, CalibMeasure[i].addr, CalibMeasure[i].raw_val) ;
-	}
+	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeasure); i++)	m90e26Write(eChan, CalibMeasure[i].addr, CalibMeasure[i].raw_val) ;
 	/* Preference is to fix this functionality, then hard code the values into the
 	 * initialization table and do it that way. Alternative would be to run this
 	 * ONLY if calibration values cannot be found in NVS, same as WIFI credentials */
@@ -337,20 +343,305 @@ int32_t	m90e26Init(uint8_t eChan) {
 	PRINT("Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
 #else
 	// write the configuration registers with MEASURE calibration data
-	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeasure); i++) {
-		m90e26Write(eChan, CalibMeasure[i].addr, CalibMeasure[i].raw_val) ;
-	}
+	for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeasure); i++)	m90e26Write(eChan, CalibMeasure[i].addr, CalibMeasure[i].raw_val) ;
 #endif
 	m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;
 
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
+// ############################# endpoint support functions ########################################
+
 // Energy returns kWh if PL constant set to 1000imp/kWh, cleared after reading
 #ifndef	M90E26_ENERGY_SCALE
 //	#define	M90E26_ENERGY_SCALE		10000.0			// default to KWHr
 	#define	M90E26_ENERGY_SCALE		10.0			// default to WHr
 #endif
+
+// Common support routines
+int32_t	m90e26ReadEnergy(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	if (pEpWork->Var.varDef.fl_sum) {					// if just a normal update cycle
+		uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+		uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+		float f32Val	= (float) RawVal / M90E26_ENERGY_SCALE ;
+		xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	} else {											// else it is a reset/set call
+		pEpWork->Var.varDef.fl_sum		= 1 ;			// and set the flag
+	}
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadCurrent(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	float f32Val	= (float) RawVal ;
+#if		(M90E26_RESOLUTION == 1)
+	RawVal	= m90e26Read(eChan, eLSB) ;
+	f32Val	+= (float) RawVal / 65536 ;
+#endif
+	f32Val	/= 1000 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadVolts(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	float f32Val	= (float) RawVal ;
+#if		(M90E26_RESOLUTION == 1)
+	RawVal	= m90e26Read(eChan, eLSB) ;
+	f32Val	+= (float) RawVal / 65536 ;
+#endif
+	f32Val	/= 100.0 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadPower(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	float f32Val	= (float) xConvert2sComp(RawVal, 16) ;
+#if		(M90E26_RESOLUTION == 1)
+	RawVal	= m90e26Read(eChan, eLSB) ;
+	f32Val	+= (float) RawVal / 65536 ;
+#endif
+	f32Val	/= 1000.0 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadFrequency(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	float f32Val	= (float) RawVal / 100.0 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	IF_PRINT(m90e26DEBUG_CONVERT, "Ch %d: eReg:%02X  Raw:0x%04X  Val:%9.3f\r", eChan, RegAddr, RawVal, f32Val) ;
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadPowerFactor(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	int32_t ConvVal = RawVal & 0x8000 ? -1 * (RawVal & 0x7FFF) : RawVal ;
+	float f32Val	= (float) ConvVal / 1000.0 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadPowerAngle(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
+	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+	int32_t ConvVal = RawVal & 0x8000 ? -1 * (RawVal & 0x7FFF) : RawVal ;
+	float f32Val	= (float) ConvVal / 10.0 ;
+	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	return erSUCCESS ;
+}
+
+// Energy wrapper functions
+int32_t	m90e26Read_E_ACT_FWD(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_FWD, URI_M90E26_E_ACT_FWD_0) ; }
+int32_t	m90e26Read_E_ACT_REV(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_REV, URI_M90E26_E_ACT_REV_0) ; }
+int32_t	m90e26Read_E_ACT_ABS(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_ABS, URI_M90E26_E_ACT_ABS_0) ; }
+int32_t	m90e26Read_E_REACT_FWD(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_FWD, URI_M90E26_E_REACT_FWD_0) ; }
+int32_t	m90e26Read_E_REACT_REV(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_REV, URI_M90E26_E_REACT_REV_0) ; }
+int32_t	m90e26Read_E_REACT_ABS(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_REV, URI_M90E26_E_REACT_ABS_0) ; }
+// LIVE Line wrapper functions
+int32_t	m90e26Read_I_RMS_L(ep_work_t * pEpWork)		{ return m90e26ReadCurrent(pEpWork, I_RMS_L, URI_M90E26_I_RMS_L_0) ; }
+int32_t	m90e26Read_V_RMS(ep_work_t * pEpWork)		{ return m90e26ReadVolts(pEpWork, V_RMS, URI_M90E26_V_RMS_0) ; }
+int32_t	m90e26Read_P_ACT_L(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_ACT_L, URI_M90E26_P_ACT_L_0) ; }
+int32_t	m90e26Read_P_REACT_L(ep_work_t * pEpWork)	{ return m90e26ReadPower(pEpWork, P_REACT_L, URI_M90E26_P_REACT_L_0) ; }
+int32_t	m90e26Read_FREQ(ep_work_t * pEpWork)		{ return m90e26ReadFrequency(pEpWork, FREQ, URI_M90E26_FREQ_0) ; }
+int32_t	m90e26Read_P_FACTOR_L(ep_work_t * pEpWork)	{ return m90e26ReadPowerFactor(pEpWork, P_FACTOR_L, URI_M90E26_P_FACTOR_L_0) ; }
+int32_t	m90e26Read_P_ANGLE_L(ep_work_t * pEpWork)	{ return m90e26ReadPowerAngle(pEpWork, P_ANGLE_L, URI_M90E26_P_ANGLE_L_0) ; }
+int32_t	m90e26Read_P_APP_L(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_APP_L, URI_M90E26_P_APP_L_0) ; }
+
+#if		(halUSE_M90E26_NEUTRAL == 1)		// NEUTRAL Line wrapper functions
+int32_t	m90e26Read_I_RMS_N(ep_work_t * pEpWork)		{ return m90e26ReadCurrent(pEpWork, I_RMS_N, URI_M90E26_I_RMS_N_0) ; }
+int32_t	m90e26Read_P_ACT_N(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_ACT_N, URI_M90E26_P_ACT_N_0) ; }
+int32_t	m90e26Read_P_REACT_N(ep_work_t * pEpWork)	{ return m90e26ReadPower(pEpWork, P_REACT_N, URI_M90E26_P_REACT_N_0) ; }
+int32_t	m90e26Read_P_FACTOR_N(ep_work_t * pEpWork)	{ return m90e26ReadPowerFactor(pEpWork, P_FACTOR_N, URI_M90E26_P_FACTOR_N_0) ; }
+int32_t	m90e26Read_P_ANGLE_N(ep_work_t * pEpWork)	{ return m90e26ReadPowerAngle(pEpWork, P_ANGLE_N, URI_M90E26_P_ANGLE_N_0) ; }
+int32_t	m90e26Read_P_APP_N(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_APP_N, URI_M90E26_P_APP_N_0) ; }
+#endif
+
+int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
+	uint16_t	NewValue ;
+	switch (Gain) {
+	case 1:		NewValue	= 0x8000 ;	break ;
+	case 4:		NewValue	= 0x0000 ;	break ;
+	case 8:		NewValue	= 0x2000 ;	break ;
+	case 16:	NewValue	= 0x4000 ;	break ;
+	case 24:	NewValue	= 0x6000 ;	break ;
+	default:	IF_SL_ERR(m90e26DEBUG_PARAM, "Invalid Live Gain =%d", Gain) ; return erFAILURE ;
+	}
+	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0xE000) ;
+	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
+	return erSUCCESS ;
+}
+
+#if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
+int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
+	uint16_t	NewValue ;
+	switch (Gain) {
+	case 1:		NewValue	= 0x1000 ;	break ;
+	case 2:		NewValue	= 0x0000 ;	break ;
+	case 4:		NewValue	= 0x0800 ;	break ;
+	default:	 IF_SL_ERR(m90e26DEBUG_PARAM, "Invalid Neutral Gain =%d", Gain) ; return erFAILURE ;
+	}
+	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0x1800) ;
+	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
+	return erSUCCESS ;
+}
+#endif
+
+inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26Read(eChan, SYS_STATUS) ; }
+inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26Read(eChan, MET_STATUS) ; }
+inline uint16_t m90e26GetLastData(uint8_t eChan)	{ return m90e26Read(eChan, LASTDATA) ; }
+
+// ############################### device reporting functions ######################################
+
+void	m90e26ReportStatus(uint8_t eChan) {
+	sysstatus_t SysStatus = (sysstatus_t) m90e26GetSysStatus(eChan) ;
+	PRINT("Ch %d :  SystemStatus %04X", eChan, SysStatus.val) ;
+	if (SysStatus.CalErr)		PRINT("\tCRC_1 Error!!") ;
+	if (SysStatus.AdjErr)		PRINT("\tCRC_2 Error!!") ;
+	if (SysStatus.LnChge)		PRINT("\tMetering line L<>N change!!") ;
+	if (SysStatus.RevQchg)		PRINT("\tReactive Energy DIR change!!") ;
+	if (SysStatus.RevPchg)		PRINT("\tActive Energy DIR change!!") ;
+	if (SysStatus.SagWarn)		PRINT("\tVoltage SAG") ;
+	PRINT("\n") ;
+
+	enstatus_t MeterStatus = (enstatus_t) m90e26GetMeterStatus(eChan) ;
+	PRINT("Ch %d :  MeterStatus %04X\n", eChan, MeterStatus.val) ;
+	if (MeterStatus.Qnoload)	PRINT("\tReActive NO Load  ") ;
+	if (MeterStatus.Pnoload)	PRINT("\tActive NO Load  ") ;
+	if (MeterStatus.RevQ)		PRINT("\tReActive Reverse  ") ;
+	if (MeterStatus.RevP)		PRINT("\tActive Reverse  ") ;
+	PRINT("Tamper %s  ", MeterStatus.Line ? "Live" : "Neutral") ;
+	PRINT("LineMode (%d) %s\n", MeterStatus.LNMode,
+								(MeterStatus.LNMode) == 0x3 ? "Flexible" :
+								(MeterStatus.LNMode) == 0x2 ? "L+N" :
+								(MeterStatus.LNMode) == 0x1 ? "L only" : "AntiTamper") ;
+}
+
+void	m90e26ReportCalib(uint8_t eChan) {
+	PRINT("Ch %d:  CALSTRT  PLconsH  PLconsL    Lgain     Lphi    Ngain     Nphi  PStrtTh   PNolTh  QStrtTh   QNolTh    MMode    CRC_1\n     ", eChan) ;
+	for(int32_t i = CALSTART; i <= CRC_1; i++)	PRINT("   0x%04X", m90e26Read(eChan, i)) ;
+	PRINT("\n") ;
+}
+
+void	m90e26ReportAdjust(uint8_t eChan) {
+	PRINT("Ch %d:  ADJSTRT    Vgain   IgainL   IgainN    Vofst   IofstL   IofstN   PofstL   QofstL   PofstN   QofstN    CRC_2\n     ", eChan) ;
+	for(int32_t i = ADJSTART; i <= CRC_2; i++)	PRINT("   0x%04X", m90e26Read(eChan, i)) ;
+	PRINT("\n") ;
+}
+
+#define	M90E26_DATA_BASE_HEADING			"Ch %d:   ActFwd   ActRev   ActAbs   ReaFwd   ReaRev   ReaAbs    IrmsL     Vrms    PactL  PreactL     Freq   PfactL  PangleL    PappL"
+
+#if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
+	#define	M90E26_DATA_HEADING_NEUTRAL		"    IrmsN    PactN  PreactN   PfactN  PangleN    PappN"
+#else
+	#define	M90E26_DATA_HEADING_NEUTRAL		""
+#endif
+
+#if		(M90E26_RESOLUTION == 1)				// LSB
+	#define	M90E26_DATA_HEADING_LSB			"      LSB"
+#else
+	#define	M90E26_DATA_HEADING_LSB			""
+#endif
+
+#if		(M90E26_LAST_DATA == 1)				// LAST_DATA
+	#define	M90E26_DATA_HEADING_LASTDATA	" LastData"
+#else
+	#define	M90E26_DATA_HEADING_LASTDATA	""
+#endif
+
+void	m90e26ReportData(uint8_t eChan) {
+	PRINT(M90E26_DATA_BASE_HEADING M90E26_DATA_HEADING_NEUTRAL M90E26_DATA_HEADING_LSB M90E26_DATA_HEADING_LASTDATA "\n     ", eChan) ;
+	for (int32_t i = 0; i < eNUM_DATA_REG; i++)		PRINT("   0x%04X", m90e26Read(eChan, m90e26Data[i].addr)) ;	PRINT("\n") ;
+}
+
+void	m90e26Report(void) {
+	for (int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
+		m90e26ReportCalib(eChan) ;
+		m90e26ReportAdjust(eChan) ;
+		m90e26ReportData(eChan) ;
+		m90e26ReportStatus(eChan) ;
+	}
+}
+
+#if		(halHAS_SSD1306 > 0)
+static	uint8_t Index = 0 ;
+static	TickType_t PrevTick = 0 ;
+void	m90e26Display(void) {
+	if (m90e26_handle[0] == 0) {
+		return ;
+	}
+	TickType_t CurTicks = xTaskGetTickCount() ;
+	if ((CurTicks - PrevTick) < M90E26_STAT_INTVL) {	// enough time elapsed ?
+		return ;										// nope, return
+	}
+	PrevTick = CurTicks ;								// yes, save current timestamp
+	uint8_t eChan = Index / halHAS_M90E26 ;
+	ssd1306SetTextCursor(&sSSD1306, 0, 0) ;
+	ep_work_t * pEpWork = &table_work[eChan == 0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
+	if ((Index % 2) == 0) {
+		devprintf(ssd1306PutC, "V:%8.3fF:%8.3fI:%8.3fAP%8.3fPa%8.3fPf%8.3f",
+			xCompVarGetValue(&pEpWork[eVOLTS].Var, NULL), xCompVarGetValue(&pEpWork[eFREQ].Var, NULL),
+			xCompVarGetValue(&pEpWork[eI_RMS_L].Var, NULL), xCompVarGetValue(&pEpWork[eP_ACT_L].Var, NULL),
+			xCompVarGetValue(&pEpWork[eP_ANGLE_L].Var, NULL), xCompVarGetValue(&pEpWork[eP_FACTOR_L].Var, NULL)) ;
+	} else {
+		devprintf(ssd1306PutC, "Af%8.3fAr%8.3fAa%8.3fRf%8.3fRr%8.3fRa%8.3f",
+			xCompVarGetValue(&pEpWork[eE_ACT_FWD].Var, NULL), xCompVarGetValue(&pEpWork[eE_ACT_REV].Var, NULL),
+			xCompVarGetValue(&pEpWork[eE_ACT_ABS].Var, NULL), xCompVarGetValue(&pEpWork[eE_REACT_FWD].Var, NULL),
+			xCompVarGetValue(&pEpWork[eE_REACT_REV].Var, NULL), xCompVarGetValue(&pEpWork[eE_REACT_ABS].Var, NULL)) ;
+	}
+	Index++ ;
+	Index %= (halHAS_M90E26 * 2) ;
+}
+#endif
+
+// ################################## Diagnostics functions ########################################
+
+
+/************************************ Replaced functionality
+void	m90e26ReadConvert(uint8_t eChan, uint8_t eReg, void (*handler)(uint8_t, uint8_t)) {
+	IF_myASSERT(m90e26DEBUG_PARAM, eChan < halHAS_M90E26 && INRANGE_MEM(handler)) ;
+	IF_CLOCKTIMER_START(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;
+	spi_transaction_t m90e26_buf[halHAS_M90E26] ;
+	spi_transaction_t * pResult ;
+	memset(m90e26_buf, 0, sizeof(m90e26_buf)) ;
+	// send read register request(s)
+	m90e26_buf[eChan].length			= 8 * 3 ;
+	m90e26_buf[eChan].flags 			= SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA ;
+	m90e26_buf[eChan].tx_data[0]		= m90e26Data[eReg].addr | 0x80 ;
+	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf[eChan])) ;
+	m90e26Data[eReg].raw_val[eChan]	= pResult->rx_data[1] << 8 | pResult->rx_data[2] ;
+	handler(eChan, eReg) ;
+	IF_CLOCKTIMER_STOP(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;
+}
+
+
+void	m90e26ReadConvertAll(uint8_t eReg, void (*handler)(uint8_t, uint8_t)) {
+	IF_myASSERT(m90e26DEBUG_PARAM, INRANGE_MEM(handler)) ;
+	IF_CLOCKTIMER_START(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;		// AVG=466uSec
+	spi_transaction_t m90e26_buf[halHAS_M90E26] ;
+	spi_transaction_t * pResult ;
+	memset(m90e26_buf, 0, sizeof(m90e26_buf)) ;
+	// send read register request(s)
+	for(int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
+		m90e26_buf[eChan].length			= 8 * 3 ;
+		m90e26_buf[eChan].flags 			= SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA ;
+		m90e26_buf[eChan].tx_data[0]		= m90e26Data[eReg].addr | 0x80 ;
+		ESP_ERROR_CHECK(spi_device_queue_trans(m90e26_handle[eChan], &m90e26_buf[eChan], portMAX_DELAY)) ;
+	}
+	// Get the read result(s), save & convert
+	for(int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
+		ESP_ERROR_CHECK(spi_device_get_trans_result(m90e26_handle[eChan], &pResult, portMAX_DELAY)) ;
+		m90e26Data[eReg].raw_val[eChan]	= pResult->rx_data[1] << 8 | pResult->rx_data[2] ;
+		handler(eChan, eReg) ;
+	}
+	IF_CLOCKTIMER_STOP(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;
+}
 
 void	m90e26Convert_ENERGY(uint8_t eChan, uint8_t eRegAddr) {
 	m90e26Data[eRegAddr].value[eChan]	+= (float) m90e26Data[eRegAddr].raw_val[eChan] / M90E26_ENERGY_SCALE ;
@@ -384,7 +675,7 @@ void	m90e26Convert_ANGLE(uint8_t eChan, uint8_t eRegAddr) {
 	m90e26Data[eRegAddr].value[eChan]	= (float) c0 / 10 ;
 }
 
-#if		(M90E25_RESOLUTION == 1)
+#if		(M90E26_RESOLUTION == 1)
 void	m90e26Convert_CURRENTlsb(uint8_t eChan, uint8_t eRegAddr) {
 	eRegAddr = m90e26Data[eRegAddr].rel_addr ;
 	m90e26Data[eLSB].value[eChan]		= (float) m90e26Data[eLSB].raw_val[eChan]  * 0.001 / 65536 ;
@@ -400,255 +691,117 @@ void	m90e26Convert_VOLTSlsb(uint8_t eChan, uint8_t eRegAddr) {
 void	m90e26Convert_POWERlsb(uint8_t eChan, uint8_t eRegAddr) {
 	eRegAddr = m90e26Data[eRegAddr].rel_addr ;
 	m90e26Data[eLSB].value[eChan]		= (float) m90e26Data[eLSB].raw_val[eChan] * 0.001 / 65536 ;
-	m90e26Data[eRegAddr].value[eChan]	+= m90e26Data[eLSB].value[eChan] ;
+	if (m90e26Data[eRegAddr].value[eChan] < 0.0) {
+		m90e26Data[eRegAddr].value[eChan]	-= m90e26Data[eLSB].value[eChan] ;
+	} else {
+		m90e26Data[eRegAddr].value[eChan]	+= m90e26Data[eLSB].value[eChan] ;
+	}
 }
 #endif
 
-void	m90e26Read_Convert(uint8_t eReg, void (*handler)(uint8_t, uint8_t)) {
-	IF_myASSERT(m90e26DEBUG_PARAM, INRANGE_MEM(handler)) ;
-	IF_CLOCKTIMER_START(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;		// AVG=466uSec
-	spi_transaction_t m90e26_buf[halHAS_M90E26] ;
-	spi_transaction_t * pResult ;
-	memset(m90e26_buf, 0, sizeof(m90e26_buf)) ;
-	// send read register request(s)
-	for(int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
-		m90e26_buf[eChan].length			= 8 * 3 ;
-		m90e26_buf[eChan].flags 			= SPI_TRANS_USE_RXDATA | SPI_TRANS_USE_TXDATA ;
-		m90e26_buf[eChan].tx_data[0]		= m90e26Data[eReg].addr | 0x80 ;
-		ESP_ERROR_CHECK(spi_device_queue_trans(m90e26_handle[eChan], &m90e26_buf[eChan], portMAX_DELAY)) ;
-	}
-	// Get the read result(s), save & convert
-	for(int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
-		ESP_ERROR_CHECK(spi_device_get_trans_result(m90e26_handle[eChan], &pResult, portMAX_DELAY)) ;
-		m90e26Data[eReg].raw_val[eChan]	= pResult->rx_data[1] << 8 | pResult->rx_data[2] ;
-		handler(eChan, eReg) ;
-	}
-	IF_CLOCKTIMER_STOP(m90e26DEBUG_TIMING, clockTIMER_M90EX6) ;
-}
-
 //Energy
-int32_t	m90e26Read_E_ACT_FWD(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_ACT_FWD, m90e26Convert_ENERGY) ; return erSUCCESS ; }
-int32_t	m90e26Read_E_ACT_REV(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_ACT_REV, m90e26Convert_ENERGY) ; return erSUCCESS ; }
-int32_t	m90e26Read_E_ACT_ABS(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_ACT_ABS, m90e26Convert_ENERGY) ; return erSUCCESS ; }
-int32_t	m90e26Read_E_REACT_FWD(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_REACT_FWD, m90e26Convert_ENERGY) ; return erSUCCESS ; }
-int32_t	m90e26Read_E_REACT_REV(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_REACT_REV, m90e26Convert_ENERGY) ; return erSUCCESS ; }
-int32_t	m90e26Read_E_REACT_ABS(ep_work_t * pEpWork)	{ m90e26Read_Convert(eE_REACT_ABS, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_ACT_FWD(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_ACT_FWD, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_ACT_REV(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_ACT_REV, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_ACT_ABS(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_ACT_ABS, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_REACT_FWD(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_REACT_FWD, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_REACT_REV(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_REACT_REV, m90e26Convert_ENERGY) ; return erSUCCESS ; }
+int32_t	m90e26Read_E_REACT_ABS(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eE_REACT_ABS, m90e26Convert_ENERGY) ; return erSUCCESS ; }
 
 // LIVE Line support
 int32_t	m90e26Read_I_RMS_L(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eI_RMS_L, m90e26Convert_CURRENT) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eI_RMS_L, m90e26Convert_CURRENT) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eI_RMS_L ;
-	m90e26Read_Convert(eLSB, m90e26Convert_CURRENTlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_CURRENTlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 int32_t	m90e26Read_V_RMS(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eVOLTS, m90e26Convert_VOLTS) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eVOLTS, m90e26Convert_VOLTS) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eVOLTS ;
-	m90e26Read_Convert(eLSB, m90e26Convert_VOLTSlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_VOLTSlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 int32_t	m90e26Read_P_ACT_L(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eP_ACT_L, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_ACT_L, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_ACT_L ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 int32_t	m90e26Read_P_REACT_L(ep_work_t * pEpWork)	{
-	m90e26Read_Convert(eP_REACT_L, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_REACT_L, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_REACT_L ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
-int32_t	m90e26Read_FREQ(ep_work_t * pEpWork)		{ m90e26Read_Convert(eFREQ, m90e26Convert_FREQ) ; return erSUCCESS ; }
+int32_t	m90e26Read_FREQ(ep_work_t * pEpWork)		{ m90e26ReadConvertAll(eFREQ, m90e26Convert_FREQ) ; return erSUCCESS ; }
 
-int32_t	m90e26Read_P_FACTOR_L(ep_work_t * pEpWork)	{ m90e26Read_Convert(eP_FACTOR_L, m90e26Convert_FACTOR) ; return erSUCCESS ; }
+int32_t	m90e26Read_P_FACTOR_L(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eP_FACTOR_L, m90e26Convert_FACTOR) ; return erSUCCESS ; }
 
-int32_t	m90e26Read_P_ANGLE_L(ep_work_t * pEpWork)	{ m90e26Read_Convert(eP_ANGLE_L, m90e26Convert_ANGLE) ; return erSUCCESS ; }
+int32_t	m90e26Read_P_ANGLE_L(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eP_ANGLE_L, m90e26Convert_ANGLE) ; return erSUCCESS ; }
 
 int32_t	m90e26Read_P_APP_L(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eP_APP_L, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_APP_L, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_APP_L ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 #if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
 int32_t	m90e26Read_I_RMS_N(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eI_RMS_N, m90e26Convert_CURRENT) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eI_RMS_N, m90e26Convert_CURRENT) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eI_RMS_N ;
-	m90e26Read_Convert(eLSB, m90e26Convert_CURRENTlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_CURRENTlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 int32_t	m90e26Read_P_ACT_N(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eP_ACT_N, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_ACT_N, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_ACT_N ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
 int32_t	m90e26Read_P_REACT_N(ep_work_t * pEpWork)	{
-	m90e26Read_Convert(eP_REACT_N, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_REACT_N, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_REACT_N ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 
-int32_t	m90e26Read_P_FACTOR_N(ep_work_t * pEpWork)	{ m90e26Read_Convert(eP_FACTOR_N, m90e26Convert_FACTOR) ; return erSUCCESS ; }
+int32_t	m90e26Read_P_FACTOR_N(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eP_FACTOR_N, m90e26Convert_FACTOR) ; return erSUCCESS ; }
 
-int32_t	m90e26Read_P_ANGLE_N(ep_work_t * pEpWork)	{ m90e26Read_Convert(eP_ANGLE_N, m90e26Convert_ANGLE) ; return erSUCCESS ; }
+int32_t	m90e26Read_P_ANGLE_N(ep_work_t * pEpWork)	{ m90e26ReadConvertAll(eP_ANGLE_N, m90e26Convert_ANGLE) ; return erSUCCESS ; }
 
 int32_t	m90e26Read_P_APP_N(ep_work_t * pEpWork)		{
-	m90e26Read_Convert(eP_APP_N, m90e26Convert_POWER) ;
-#if		(M90E25_RESOLUTION == 1)
+	m90e26ReadConvertAll(eP_APP_N, m90e26Convert_POWER) ;
+#if		(M90E26_RESOLUTION == 1)
 	m90e26Data[eLSB].rel_addr	= eP_APP_N ;
-	m90e26Read_Convert(eLSB, m90e26Convert_POWERlsb) ;
+	m90e26ReadConvertAll(eLSB, m90e26Convert_POWERlsb) ;
 #endif
 	return erSUCCESS ;
 }
 #endif
 
-int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
-uint16_t	NewValue ;
-	switch (Gain) {
-	case 1:		NewValue	= 0x8000 ;	break ;
-	case 4:		NewValue	= 0x0000 ;	break ;
-	case 8:		NewValue	= 0x2000 ;	break ;
-	case 16:	NewValue	= 0x4000 ;	break ;
-	case 24:	NewValue	= 0x6000 ;	break ;
-	default:	IF_SL_ERR(m90e26DEBUG_PARAM, "Invalid Live Gain =%d", Gain) ; return erFAILURE ;
-	}
-	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0xE000) ;
-	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
-	return erSUCCESS ;
-}
 
-int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
-uint16_t	NewValue ;
-	switch (Gain) {
-	case 1:		NewValue	= 0x1000 ;	break ;
-	case 2:		NewValue	= 0x0000 ;	break ;
-	case 4:		NewValue	= 0x0800 ;	break ;
-	default:	 IF_SL_ERR(m90e26DEBUG_PARAM, "Invalid Neutral Gain =%d", Gain) ; return erFAILURE ;
-	}
-	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0x1800) ;
-	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
-	return erSUCCESS ;
-}
-
-inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26Read(eChan, SYS_STATUS) ; }
-inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26Read(eChan, MET_STATUS) ; }
-inline uint16_t m90e26GetLastData(uint8_t eChan)	{ return m90e26Read(eChan, LASTDATA) ; }
-
-// ############################### device reporting functions ######################################
-
-void	m90e26ReportStatus(uint8_t eChan) {
-	uint16_t SysStatus = m90e26GetSysStatus(eChan) ;
-	PRINT("Ch %d :  SystemStatus %04x", eChan, SysStatus) ;
-	if (SysStatus & 0xC000)		PRINT("\tCRC_1 Error!!") ;
-	if (SysStatus & 0x3000)		PRINT("\tCRC_2 Error!!") ;
-	if (SysStatus & 0x0080)		PRINT("\tMetering line L<>N change!!") ;
-	if (SysStatus & 0x0040)		PRINT("\tReactive Energy DIR change!!") ;
-	if (SysStatus & 0x0020)		PRINT("\tActive Energy DIR change!!") ;
-	if (SysStatus & 0x0002)		PRINT("\tVoltage SAG") ;
-	PRINT("\n") ;
-
-	uint16_t MeterStatus = m90e26GetMeterStatus(eChan) ;
-	PRINT("Ch %d :  MeterStatus %04x\n", eChan, MeterStatus) ;
-	if (MeterStatus & 0x8000)	PRINT("\tReActive NO Load  ") ;
-	if (MeterStatus & 0x4000)	PRINT("\tActive NO Load  ") ;
-	if (MeterStatus & 0x2000)	PRINT("\tReActive Reverse  ") ;
-	if (MeterStatus & 0x1000)	PRINT("\tActive Reverse  ") ;
-	PRINT("Tamper %s  ", MeterStatus & 0x0800 ? "Live" : "Neutral") ;
-	PRINT("LineMode (%d) %s\n", MeterStatus & 0x3,
-								(MeterStatus & 0x3) == 0x3 ? "Flexible" :
-								(MeterStatus & 0x3) == 0x2 ? "L+N" :
-								(MeterStatus & 0x3) == 0x1 ? "L only" : "AntiTamper") ;
-}
-
-void	m90e26ReportCalib(uint8_t eChan) {
-const uint8_t m90e26RegCalib[]	= {	CALSTART, PLconstH, PLconstL, L_GAIN, L_PHI, N_GAIN, N_PHI, P_SUP_TH, P_NOL_TH, Q_SUP_TH, Q_NOL_TH, MET_MODE, CRC_1 } ;
-	PRINT("Ch %d:  CALSTRT  PLconsH  PLconsL    Lgain     Lphi    Ngain     Nphi  PStrtTh   PNolTh  QStrtTh   QNolTh    MMode    CRC_1\n     ", eChan) ;
-	for(int32_t i = 0; i < sizeof(m90e26RegCalib); i++)		PRINT("   0x%04x", m90e26Read(eChan, m90e26RegCalib[i])) ;
-	PRINT("\n") ;
-}
-
-void	m90e26ReportAdjust(uint8_t eChan) {
-const uint8_t m90e26RegAdjust[]	= {	ADJSTART, V_GAIN, I_GAIN_L, I_GAIN_N, V_OFFSET, I_OFST_L, I_OFST_N, P_OFST_L, Q_OFST_L, P_OFST_N, Q_OFST_N, CRC_2 } ;
-	PRINT("Ch %d:  ADJSTRT    Vgain   IgainL   IgainN    Vofst   IofstL   IofstN   PofstL   QofstL   PofstN   QofstN    CRC_2\n     ", eChan) ;
-	for(int32_t i = 0; i < sizeof(m90e26RegAdjust); i++)	PRINT("   0x%04x", m90e26Read(eChan, m90e26RegAdjust[i])) ;
-	PRINT("\n") ;
-}
-
-void	m90e26ReportData(uint8_t eChan) {
-	data_reg_t * pData = &m90e26Data[0] ;
-#if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
-	PRINT("Ch %d:   ActFwd   ActRev   ActAbs   ReaFwd   ReaRev   ReaAbs    IrmsL     Vrms    PactL  PreactL     Freq   PfactL  PangleL    PappL    IrmsN    PactN  PreactN   PfactN  PangleN    PappN\n     ", eChan) ;
-#else
-	PRINT("Ch %d:   ActFwd   ActRev   ActAbs   ReaFwd   ReaRev   ReaAbs    IrmsL     Vrms    PactL  PreactL     Freq   PfactL  PangleL    PappL\n     ", eChan) ;
-#endif
-	for (int32_t i = 0; i < eNUM_DATA_REG; i++)		PRINT("   0x%04x", pData[i].raw_val[eChan]) ;	PRINT("\n     ") ;
-	for (int32_t i = 0; i < eNUM_DATA_REG; i++)		PRINT(" %8.3f", pData[i].value[eChan]) ;	PRINT("\n") ;
-}
-
-void	m90e26Report(void) {
-	for (int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
-		m90e26ReportCalib(eChan) ;
-		m90e26ReportAdjust(eChan) ;
-		m90e26ReportData(eChan) ;
-		m90e26ReportStatus(eChan) ;
-	}
-}
-
-#if		(halHAS_SSD1306 > 0)
-static	uint8_t Index = 0 ;
-static	TickType_t PrevTick = 0 ;
-void	m90e26Display(void) {
-uint8_t	Chan ;
-	if (m90e26_handle[0] == 0) {
-		return ;
-	}
-	TickType_t CurTicks = xTaskGetTickCount() ;
-	if ((CurTicks - PrevTick) < M90E26_STAT_INTVL) {	// enough time elapsed ?
-		return ;										// nope, return
-	}
-	PrevTick = CurTicks ;								// yes, save current timestamp
-	Chan = Index / halHAS_M90E26 ;
-	ssd1306SetTextCursor(&sSSD1306, 0, 0) ;
-	if ((Index % 2) == 0) {
-		devprintf(ssd1306PutC, "V:%8.3fF:%8.3fI:%8.3fAP%8.3fPa%8.3fPf%8.3f",
-			m90e26Data[eVOLTS].value[Chan],m90e26Data[eFREQ].value[Chan],m90e26Data[eI_RMS_L].value[Chan],
-			m90e26Data[eP_ACT_L].value[Chan],m90e26Data[eP_ANGLE_L].value[Chan],m90e26Data[eP_FACTOR_L].value[Chan]) ;
-	} else {
-		devprintf(ssd1306PutC, "Af%8.3fAr%8.3fAa%8.3fRf%8.3fRr%8.3fRa%8.3f",
-			m90e26Data[eE_ACT_FWD].value[Chan],m90e26Data[eE_ACT_REV].value[Chan],m90e26Data[eE_ACT_ABS].value[Chan],
-			m90e26Data[eE_REACT_FWD].value[Chan],m90e26Data[eE_REACT_REV].value[Chan],m90e26Data[eE_REACT_ABS].value[Chan]) ;
-	}
-	Index++ ;
-	Index %= (halHAS_M90E26 * 2) ;
-}
-#endif
-
-// ################################## Diagnostics functions ########################################
+ */
 
 #endif
