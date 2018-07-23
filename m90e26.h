@@ -199,7 +199,7 @@ typedef union sysstatus_u {
 	uint16_t	val ;
 } sysstatus_t ;
 
-union funcenab_u {
+typedef union funcenab_u {
 	struct {
 		uint16_t	r1		: 10 ;
 		uint8_t		SagEn	: 1 ;
@@ -209,9 +209,9 @@ union funcenab_u {
 		uint8_t		r2 		: 2 ;
 	};
 	uint16_t	val ;
-} ;
+} funcenab_t ;
 
-union met_mode_u {
+typedef union met_mode_u {
 	struct {
 		uint8_t		Lgain	: 3 ;
 		uint8_t		Ngain	: 2 ;
@@ -223,7 +223,7 @@ union met_mode_u {
 		uint8_t		Pthres	: 4 ;
 	};
 	uint16_t	val ;
-} ;
+} met_mode_t ;
 
 typedef union enstatus_u {
 	struct {
@@ -244,34 +244,11 @@ typedef struct conf_reg_s {
  	uint16_t	raw_val ;
  } conf_reg_t ;
 
-#define	MAKE_DATA_REG(x)		{ .addr = x },
-
-typedef struct data_reg_s {
-#if 1
- 	uint16_t	raw_val ;
- 	uint8_t		addr ;
- 	uint8_t		rel_addr ;			// used only with LSB to link to related register
-#else
- 	float		value[halHAS_M90E26] ;
- 	uint16_t	raw_val[halHAS_M90E26] ;
- 	uint8_t		addr ;
- 	uint8_t		rel_addr ;			// used only with LSB to link to related register
-#endif
- } data_reg_t ;
-
-typedef struct m90e26_s {
-	float	current[halHAS_M90E26] ;
-	float	voltage[halHAS_M90E26] ;
-	float	power[halHAS_M90E26] ;
-	float	energy[halHAS_M90E26] ;
-} m90e26_t ;
-
 // See http://www.catb.org/esr/structure-packing/
 // Also http://c0x.coding-guidelines.com/6.7.2.1.html
 
 // ####################################### Global variables ########################################
 
-extern	data_reg_t	m90e26Data[] ;
 
 // ####################################### Global functions ########################################
 
