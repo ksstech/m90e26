@@ -51,28 +51,28 @@
 // ############################################# Macros ############################################
 
 #define SOFTRESET			0x00	// Software Reset
-#define SYS_STATUS			0x01	// System Status
-#define FUNC_ENAB			0x02	// Function Enable
+#define SYS_STATUS0			0x01	// System Status
+#define FUNC_ENAB0			0x02	// Function Enable
 #define V_SAG_THR			0x03 	// Voltage Sag Threshold
 #define POWER_MODE			0x04 	// Small-Power Mode
 #define LASTDATA			0x06	// Last Read/Write SPI/UART Value
 #define LSB					0x08 	// RMS/Power 16-bit LSB
 
-#define CALSTART			0x20 	// Calibration Start Command
+#define CFGSTART			0x20 	// Calibration Start Command
 #define PLconstH			0x21 	// High Word of PL_Constant
 #define PLconstL			0x22 	// Low Word of PL_Constant
-#define L_GAIN				0x23 	// L Line Calibration Gain
-#define L_PHI				0x24 	// L Line Calibration Angle
+#define GAIN_A				0x23 	// L Line Calibration Gain
+#define PHI_A				0x24 	// L Line Calibration Angle
 #define N_GAIN				0x25 	// N Line Calibration Gain
 #define N_PHI				0x26 	// N Line Calibration Angle
 #define P_SUP_TH			0x27 	// Active Startup Power Threshold
 #define P_NOL_TH			0x28 	// Active No-Load Power Threshold
 #define Q_SUP_TH			0x29 	// Reactive Startup Power Threshold
 #define Q_NOL_TH			0x2A 	// Reactive No-Load Power Threshold
-#define MET_MODE			0x2B 	// Metering Mode Configuration
-#define CRC_1				0x2C 	// Checksum 1
+#define MET_MODE_0			0x2B 	// Metering Mode Configuration
+#define CRC_0				0x2C 	// Checksum 1
 
-#define ADJSTART			0x30 	// Measurement Calibration Start Command
+#define CALSTART			0x30 	// Measurement Calibration Start Command
 #define V_GAIN				0x31 	// Voltage rms Gain
 #define I_GAIN_L			0x32 	// L Line Current rms Gain
 #define I_GAIN_N			0x33 	// N Line Current rms Gain
@@ -86,14 +86,14 @@
 #define CRC_2 				0x3B 	// Checksum 2
 
 // Energy registers
-#define E_ACT_FWD 			0x40 	// Forward Active Energy
-#define E_ACT_REV 			0x41 	// Reverse Active Energy
-#define E_ACT_ABS 			0x42 	// Absolute Active Energy
+#define AP_ENER_T 			0x40 	// Forward Active Energy
+#define AN_ENER_T 			0x41 	// Reverse Active Energy
+#define RP_ENER_T 			0x42 	// Absolute Active Energy
 #define E_REACT_FWD			0x43 	// Forward (Inductive) Reactive Energy
 #define E_REACT_REV 		0x44 	// Reverse (Capacitive) Reactive Energy
 #define E_REACT_ABS 		0x45 	// Absolute Reactive Energy
 
-#define MET_STATUS 			0x46 	// Metering Status
+#define MET_STAT_0 			0x46 	// Metering Status
 
 #define I_RMS_L				0x48 	// L Line Current rms
 #define V_RMS				0x49 	// Voltage rms
@@ -142,7 +142,6 @@ enum {
 	eQNolTh,
 	eMMode,
 	eCRC_1,
-	eNUM_CALIB
 } ;
 
 enum {
@@ -291,5 +290,5 @@ void	m90e26ReportStatus(uint8_t eChan) ;
 void	m90e26ReportData(uint8_t eChan) ;
 void	m90e26ReportCalib(uint8_t eChan) ;
 void	m90e26ReportAdjust(uint8_t eChan) ;
-void	m90e26Report(void) ;
+void	m90e26Report(int32_t Handle) ;
 void	m90e26Display(void) ;
