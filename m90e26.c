@@ -141,7 +141,7 @@ const conf_reg_t CalibMeter[] = {
 
 const conf_reg_t CalibMeasure[] = {
 #if		(M90E26_CALIB_TABLE == 0)					// AMM values
-	{ ADJSTART,		0,	STDCOD },
+	{ CALSTART,		0,	STDCOD },
 	{ V_GAIN,		0,	0x6C50 },	// OK
 	{ I_GAIN_L,		0,	0x7C2A },	// OK
 	#if	(M90E26_CALIB_SOFT == 0)
@@ -450,7 +450,7 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 }
 #endif
 
-inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26Read(eChan, SYS_STATUS0) ; }
+inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26Read(eChan, SYS_STATUS) ; }
 inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26Read(eChan, MET_STATUS) ; }
 inline uint16_t m90e26GetLastData(uint8_t eChan)	{ return m90e26Read(eChan, LASTDATA) ; }
 
