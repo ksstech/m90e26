@@ -23,9 +23,9 @@
  */
 
 #include	"x_config.h"
+#include	"hal_config.h"
 
 #if		(halHAS_M90E26 > 0)
-#include	"hal_config.h"
 #include	"hal_spi.h"
 
 #include	"x_debug.h"
