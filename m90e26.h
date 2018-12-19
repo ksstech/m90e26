@@ -44,7 +44,6 @@
 #define	M90E26_CALIB_SOFT	0							// enable software based calibration
 #define	M90E26_CALIB_ITER	100							// number of READ iterations to determine mean value
 
-#define	M90E26_STAT_INTVL	pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
 #define	M90E26_RESOLUTION	1							// enable additional LSB values to be included
 #define	M90E26_LAST_DATA	1							// enable support for LASTDATA verification
 
@@ -111,10 +110,11 @@
 #define P_ANGLE_N 			0x6E 	// Phase Angle between Voltage and N Line Current
 #define P_APP_N 			0x6F 	// N Line Mean Apparent Power
 
-#define	RSTCOD				0x789A
-#define	STDCOD				0x5678
-#define	CFGCOD				0x8765
-#define	PWRCOD				0xA987
+#define	PWR_ON				0x6886	// indicates default Power On status, not measuring
+#define	STDCOD				0x5678	// trigger calibration/adjustment
+#define	CFGCOD				0x8765	// check calibration/adjustment, start measurement if all OK
+#define	RSTCOD				0x789A	// trigger software reset
+#define	PWRCOD				0xA987	// Set small power mode
 
 // ######################################## Enumerations ###########################################
 
@@ -180,6 +180,17 @@ enum {
 #endif
 	eNUM_DATA_REG
  } ;
+
+enum {													// supported mode options
+	eINVALID,
+	eL_GAIN,											// 1, 4, 8, 16, 24
+	eN_GAIN,											// 1, 2, 4
+	eSOFTRESET,												// reset only
+	eRECALIB,											// reset & recalibrate
+	eBRIGHT,											//
+	eDISPLAY,											// sensor values display on/off
+	eBLANKING,											// set period for blanking between channels
+} ;
 
 // ######################################### Structures ############################################
 
@@ -252,7 +263,9 @@ typedef struct conf_reg_s {
 // ####################################### Global functions ########################################
 
 struct	ep_work_s ;
-int32_t	m90e26Init(uint8_t eChan) ;
+int32_t	m90e26Init(uint8_t eDev) ;
+int32_t	m90e26Identify(uint8_t eDev) ;
+
 void	m90e26DataReadAll(uint8_t eChan) ;
 void	m90e26DataConvertAll(uint8_t eChan) ;
 
@@ -286,9 +299,14 @@ int32_t	m90e26Read_P_FACTOR_N(struct ep_work_s * pEpWork) ;
 int32_t	m90e26Read_P_ANGLE_L(struct ep_work_s * pEpWork) ;
 int32_t	m90e26Read_P_ANGLE_N(struct ep_work_s * pEpWork) ;
 
+struct rule_s ;
+int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
+
 void	m90e26ReportStatus(int32_t Handle, uint8_t eChan) ;
 void	m90e26ReportData(int32_t Handle, uint8_t eChan) ;
 void	m90e26ReportCalib(int32_t Handle, uint8_t eChan) ;
 void	m90e26ReportAdjust(int32_t Handle, uint8_t eChan) ;
 void	m90e26Report(int32_t Handle) ;
 void	m90e26Display(void) ;
+int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
+int32_t	m90e26DisplayState(uint8_t State) ;
