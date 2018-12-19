@@ -36,7 +36,7 @@
 
 #include	"x_debug.h"
 #include	"x_errors_events.h"
-#include	"x_ticktimer.h"					// timing debugging
+#include	"x_systiming.h"					// timing debugging
 #include	"x_syslog.h"
 #include	"x_values_convert.h"
 
