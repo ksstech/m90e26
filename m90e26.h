@@ -29,8 +29,7 @@
 /* Notes & references:
  * mode option to select WHr or KWHr, set default, variable used as divisor
  *
- * Full duplex, synchronous
- * MSB first
+ * SPI is Full duplex, synchronous, MSB first
  *
  * https://www.hackster.io/whatnick/atm90e26-and-esp8266-energy-monitoring-cdac92
  * https://imgur.com/a/BsEUM
@@ -39,13 +38,14 @@
 
 // ##################################### BUILD definitions #########################################
 
-#define M90E26_CALIB_TABLE	0							// 0=AMM, 1=Tisham, 2=DEFAULT
+#define M90E26_CALIB_TABLE		0						// 0=AMM, 1=Tisham, 2=DEFAULT
 // Only effective if (M90E26_CALIB_TABLE == 0) above !!!
-#define	M90E26_CALIB_SOFT	0							// enable software based calibration
-#define	M90E26_CALIB_ITER	100							// number of READ iterations to determine mean value
+#define	M90E26_CALIB_SOFT		0						// enable software based calibration
+#define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
 
-#define	M90E26_RESOLUTION	1							// enable additional LSB values to be included
-#define	M90E26_LAST_DATA	1							// enable support for LASTDATA verification
+#define	M90E26_RESOLUTION		1						// enable additional LSB values to be included
+#define	M90E26_LAST_DATA		1						// enable support for LASTDATA verification
+#define	M90E26_NEUTRAL			1
 
 // ############################################# Macros ############################################
 
@@ -162,7 +162,7 @@ enum {
  	eP_ANGLE_L,
  	eP_APP_L,
 
-#if		(halUSE_M90E26_NEUTRAL == 1)		// Neutral Line
+#if		(M90E26_NEUTRAL == 1)		// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
@@ -185,16 +185,30 @@ enum {													// supported mode options
 	eINVALID,
 	eL_GAIN,											// 1, 4, 8, 16, 24
 	eN_GAIN,											// 1, 2, 4
-	eSOFTRESET,												// reset only
+	eSOFTRESET,											// reset only
 	eRECALIB,											// reset & recalibrate
 	eBRIGHT,											//
 	eDISPLAY,											// sensor values display on/off
 	eBLANKING,											// set period for blanking between channels
 } ;
 
+enum display_mode {
+	eDM_DISABLED,
+	eDM_NORMAL,											// always on, cycle through, step contrast
+	eDM_CURRENT,										// if current != 0, then include
+	eDM_BUTTON,
+	eDM_MAXIMUM,
+} ;
+
 // ######################################### Structures ############################################
 
-typedef union sysstatus_u {
+typedef struct conf_reg_s {
+ 	uint8_t		addr ;
+ 	uint8_t		flag ;
+ 	uint16_t	raw_val ;
+ } conf_reg_t ;
+
+typedef union {
 	struct {
 		uint8_t		CalErr	: 2 ;
 		uint8_t		AdjErr	: 2 ;
@@ -207,33 +221,7 @@ typedef union sysstatus_u {
 		uint8_t		r3 		: 1 ;
 	};
 	uint16_t	val ;
-} sysstatus_t ;
-
-typedef union funcenab_u {
-	struct {
-		uint16_t	r1		: 10 ;
-		uint8_t		SagEn	: 1 ;
-		uint8_t		SagWo	: 1 ;
-		uint8_t		RevQen	: 1 ;
-		uint8_t		RevPen	: 1 ;
-		uint8_t		r2 		: 2 ;
-	};
-	uint16_t	val ;
-} funcenab_t ;
-
-typedef union met_mode_u {
-	struct {
-		uint8_t		Lgain	: 3 ;
-		uint8_t		Ngain	: 2 ;
-		uint8_t		LNSel	: 1 ;
-		uint8_t		DisHPF	: 2 ;
-		uint8_t		Amod	: 1 ;
-		uint8_t		Rmod	: 1 ;
-		uint8_t		ZXCon	: 2 ;
-		uint8_t		Pthres	: 4 ;
-	};
-	uint16_t	val ;
-} met_mode_t ;
+} m90e36system_stat_t ;
 
 typedef union enstatus_u {
 	struct {
@@ -246,13 +234,7 @@ typedef union enstatus_u {
 		uint8_t		LNMode	: 2 ;
 	};
 	uint16_t	val ;
-} enstatus_t ;
-
-typedef struct conf_reg_s {
- 	uint8_t		addr ;
- 	uint8_t		flag ;
- 	uint16_t	raw_val ;
- } conf_reg_t ;
+} m90e26meter_stat_t ;
 
 // See http://www.catb.org/esr/structure-packing/
 // Also http://c0x.coding-guidelines.com/6.7.2.1.html

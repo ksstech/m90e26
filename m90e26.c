@@ -51,8 +51,6 @@
 #include	<stdint.h>
 #include	<string.h>
 
-// ######################################### DEBUG MACROS ##########################################
-
 #define	debugFLAG					0xC000
 
 #define	debugREAD					(debugFLAG & 0x0001)
@@ -122,14 +120,13 @@ struct {
 	uint8_t	MaxContrast ;
 	uint8_t	NowContrast ;
 	struct {
-		uint8_t	L_Gain	: 5 ;							// 1 -> 24
-#if		(halUSE_M90E26_NEUTRAL == 1)
-		uint8_t	N_Gain	: 3 ;							// 1 -> 4
-#endif
-		uint8_t	E_Scale	: 1 ;							// 0 = WHr,	1= KwHr
+		uint8_t	E_Scale	: 1 ;							// 0 = WHr,	1 = KwHr
 		uint8_t	P_Scale	: 1 ;							// 0 = W,	1 = Kw
 		uint8_t	I_Scale	: 1 ;							// 0 = A,	1 = KwHr
-		uint8_t	Display	: 1 ;							// 0 = Off, 1 = On
+		uint8_t	Display	: 2 ;							// 0 = Off, 1 = Normal,	2 = Current, 3 = Button
+		uint8_t	Spare	: 3 ;
+		uint8_t	N_Gain	: 3 ;							// 1 -> 4
+		uint8_t	L_Gain	: 5 ;							// 1 -> 24
 	} Chan[halHAS_M90E26] ;
 } m90e26Config ;
 
@@ -295,7 +292,9 @@ uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
  * m90e26HandleCRC() - Calculate the CRC from the range of registers & write the lock register/pattern
  */
 void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
-	IF_myASSERT(debugPARAM, eChan<halHAS_M90E26 && ((RegAddr1==CALSTART && RegAddr2==CRC_1) || (RegAddr1==ADJSTART && RegAddr2==CRC_2))) ;
+	IF_myASSERT(debugPARAM, (eChan < halHAS_M90E26) &&
+							((RegAddr1==CALSTART && RegAddr2==CRC_1) ||
+							 (RegAddr1==ADJSTART && RegAddr2==CRC_2) ) ) ;
 	m90e26Write(eChan, RegAddr2, m90e26CalcCRC(eChan, RegAddr1 + 1, RegAddr2 - RegAddr1 - 1)) ;
 	m90e26Write(eChan, RegAddr1, CFGCOD) ;
 }
@@ -303,7 +302,7 @@ void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
 // ############################## identification & initialization ##################################
 
 int32_t	m90e26Identify(uint8_t eDev) {
-	IF_myASSERT(debugPARAM, (eDev < halHAS_M90E26)) ;
+	IF_myASSERT(debugPARAM, eDev < halHAS_M90E26) ;
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eDev], &m90e26_handle[eDev])) ;
 	return erSUCCESS ;
 }
@@ -363,7 +362,7 @@ int32_t	m90e26Init(uint8_t eChan) {
 
 	// set default state
 	m90e26Config.Chan[eChan].L_Gain	= 1 ;
-#if		(halUSE_M90E26_NEUTRAL == 1)
+#if		(M90E26_NEUTRAL == 1)
 	m90e26Config.Chan[eChan].N_Gain	= 1 ;
 #endif
 	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// WHr not KwHr
@@ -404,7 +403,7 @@ int32_t	m90e26ReadCurrent(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
 		f32Val	/= 1000.0 ;								// convert to Amp (not mA)
 	}
 
-#if		(halUSE_M90E26_NEUTRAL == 1)
+#if		(M90E26_NEUTRAL == 1)
 	f32Val /= (eUri == URI_M90E26_I_RMS_L_0) ? m90e26Config.Chan[eChan].L_Gain : m90e26Config.Chan[eChan].N_Gain ;
 #else
 	f32Val /= m90e26Config.Chan[eChan].L_Gain ;
@@ -540,9 +539,9 @@ int32_t m90e26Recalibrate(uint8_t eChan) {
 
 // ############################### dynamic configuration support ###################################
 
-int32_t	m90e26DisplayContrast(uint8_t Contrast) { ssd1306SetContrast(&sSSD1306, Contrast) ;	return erSUCCESS ; }
+int32_t	m90e26DisplayContrast(uint8_t Contrast) { ssd1306SetContrast(Contrast) ;	return erSUCCESS ; }
 
-int32_t	m90e26DisplayState(uint8_t State) { ssd1306SetDisplayState(&sSSD1306, State) ; return erSUCCESS ; }
+int32_t	m90e26DisplayState(uint8_t State) { ssd1306SetDisplayState(State) ; return erSUCCESS ; }
 
 /**
  * m90e26ConfigMode() --  configure device functionality
@@ -558,7 +557,7 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	int32_t iRV = erSUCCESS ;
 	switch (psRule->para.u32[0][0]) {
 	case eL_GAIN:	iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;		break ;
-#if		(halUSE_M90E26_NEUTRAL == 1)		// NEUTRAL Line wrapper functions
+#if		(M90E26_NEUTRAL == 1)		// NEUTRAL Line wrapper functions
 	case eN_GAIN:	iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;	break ;
 #endif
 	case eSOFTRESET:iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;									break ;
@@ -576,12 +575,20 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 		break ;
 
 	case eDISPLAY:
-		if ((psRule->para.u32[0][1] < halHAS_M90E26) &&
-			(psRule->para.u32[0][2] < 2)) {
-			m90e26Config.Chan[psRule->para.u32[0][1]].Display = psRule->para.u32[0][2] ;
+	#if	(halHAS_M90E26 > 0)
+		if (psRule->para.u32[0][1] < eDM_MAXIMUM) {
+			m90e26Config.Chan[M90E26_0].Display = psRule->para.u32[0][1] ;
 		} else {
 			iRV = erSCRIPT_INV_PARA ;
 		}
+	#endif
+	#if	(halHAS_M90E26 > 1)
+		if (psRule->para.u32[0][2] < eDM_MAXIMUM) {
+			m90e26Config.Chan[M90E26_1].Display = psRule->para.u32[0][2] ;
+		} else {
+			iRV = erSCRIPT_INV_PARA ;
+		}
+	#endif
 		break ;
 
 	case eBLANKING:	m90e26Config.tBlank = psRule->para.u32[0][1] ;									break ;
@@ -593,8 +600,8 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 
 // ############################### device reporting functions ######################################
 
-void	m90e26ReportStatus(int32_t Handle, uint8_t eChan) {
-	sysstatus_t SysStatus = (sysstatus_t) m90e26GetSysStatus(eChan) ;
+void	m90e26ReportSystem(int32_t Handle, uint8_t eChan) {
+	m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
 	xdprintf(Handle, "Ch %d :  SystemStatus %04X", eChan, SysStatus.val) ;
 	if (SysStatus.CalErr)		xdprintf(Handle, "\tCRC_1 Error!!") ;
 	if (SysStatus.AdjErr)		xdprintf(Handle, "\tCRC_2 Error!!") ;
@@ -603,8 +610,10 @@ void	m90e26ReportStatus(int32_t Handle, uint8_t eChan) {
 	if (SysStatus.RevPchg)		xdprintf(Handle, "\tActive Energy DIR change!!") ;
 	if (SysStatus.SagWarn)		xdprintf(Handle, "\tVoltage SAG") ;
 	xdprintf(Handle, "\n") ;
+}
 
-	enstatus_t MeterStatus = (enstatus_t) m90e26GetMeterStatus(eChan) ;
+void	m90e26ReportMeter(int32_t Handle, uint8_t eChan) {
+	m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eChan) ;
 	xdprintf(Handle, "Ch %d :  MeterStatus %04X\n", eChan, MeterStatus.val) ;
 	if (MeterStatus.Qnoload)	xdprintf(Handle, "\tReActive NO Load  ") ;
 	if (MeterStatus.Pnoload)	xdprintf(Handle, "\tActive NO Load  ") ;
@@ -635,7 +644,7 @@ void	m90e26ReportAdjust(int32_t Handle, uint8_t eChan) {
 
 #define	M90E26_DATA_BASE_HEADING			"Ch %d:   ActFwd   ActRev   ActAbs   ReaFwd   ReaRev   ReaAbs    IrmsL     Vrms    PactL  PreactL     Freq   PfactL  PangleL    PappL"
 
-#if		(halUSE_M90E26_NEUTRAL == 1)					// Neutral Line
+#if		(M90E26_NEUTRAL == 1)					// Neutral Line
 	#define	M90E26_DATA_HEADING_NEUTRAL		"    IrmsN    PactN  PreactN   PfactN  PangleN    PappN"
 #else
 	#define	M90E26_DATA_HEADING_NEUTRAL		""
@@ -655,7 +664,7 @@ void	m90e26ReportAdjust(int32_t Handle, uint8_t eChan) {
 
 static const uint8_t m90e26DataReg[] = {
 	E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS, I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
-#if		(halUSE_M90E26_NEUTRAL == 1)
+#if		(M90E26_NEUTRAL == 1)
 	I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 #endif
 #if		(M90E26_RESOLUTION == 1)
@@ -679,12 +688,13 @@ void	m90e26Report(int32_t Handle) {
 		m90e26ReportCalib(Handle, eChan) ;
 		m90e26ReportAdjust(Handle, eChan) ;
 		m90e26ReportData(Handle, eChan) ;
-		m90e26ReportStatus(Handle, eChan) ;
+		m90e26ReportSystem(Handle, eChan) ;
+		m90e26ReportMeter(Handle, eChan) ;
 	}
 }
 #endif
 
-#if		(halHAS_SSD1306 > 0)
+#if		(halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
 
 #define	m90e26STEP_CONTRAST		0x04
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
@@ -694,6 +704,28 @@ static	uint8_t eChan = 0,
 static	TickType_t	NextTick = 0 ;
 static	ep_work_t * pEpWork;
 
+void	m90e26DisplayInfo(void) {
+	ssd1306SetDisplayState(1) ;
+	ssd1306SetTextCursor(0, 0) ;
+	if ((Index % 2) == 0) {
+		devprintf(ssd1306PutChar, "Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
+		xCompVarGetValue(&pEpWork[eVOLTS].Var, NULL),
+		xCompVarGetValue(&pEpWork[eFREQ].Var, NULL),
+		xCompVarGetValue(&pEpWork[eI_RMS_L].Var, NULL),
+		xCompVarGetValue(&pEpWork[eP_ACT_L].Var, NULL),
+		xCompVarGetValue(&pEpWork[eP_ANGLE_L].Var, NULL),
+		xCompVarGetValue(&pEpWork[eP_FACTOR_L].Var, NULL)) ;
+	} else {
+		devprintf(ssd1306PutChar, "Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
+		xCompVarGetValue(&pEpWork[eE_ACT_FWD].Var, NULL),
+		xCompVarGetValue(&pEpWork[eE_ACT_REV].Var, NULL),
+		xCompVarGetValue(&pEpWork[eE_ACT_ABS].Var, NULL),
+		xCompVarGetValue(&pEpWork[eE_REACT_FWD].Var, NULL),
+		xCompVarGetValue(&pEpWork[eE_REACT_REV].Var, NULL),
+		xCompVarGetValue(&pEpWork[eE_REACT_ABS].Var, NULL)) ;
+	}
+}
+
 void	m90e26Display(void) {
 	if (m90e26_handle[0] == 0) {
 		return ;
@@ -701,54 +733,40 @@ void	m90e26Display(void) {
 	TickType_t CurTick = xTaskGetTickCount() ;
 	if (NextTick == 0) {
 		NextTick = CurTick ;
-	}
-	if (NextTick > CurTick) {
+	} else if (NextTick > CurTick) {
 		return ;
 	}
+#if 0
 	if ((Index == 0) && m90e26Config.tBlank) {
 		NextTick = CurTick + pdMS_TO_TICKS(m90e26Config.tBlank * MILLIS_IN_SECOND) ;
-		ssd1306SetDisplayState(&sSSD1306, 0) ;
-		return ;
+		ssd1306SetDisplayState(0) ;
+		return true ;
+	}
+#endif
+	//
+	NextTick = CurTick + m90e26STAT_INTVL ;
+	eChan = Index / halHAS_M90E26 ;
+	pEpWork = &table_work[eChan == M90E26_0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
+	double dValue ;
+	xCompVarGetValue(&pEpWork[eI_RMS_L].Var, &dValue) ;
+	if ((m90e26Config.NowContrast > 0) &&
+		(m90e26Config.Chan[eChan].Display == eDM_NORMAL ||
+		(m90e26Config.Chan[eChan].Display == eDM_CURRENT && dValue != 0.0) ) ) {
+		m90e26DisplayInfo() ;
 	} else {
-		NextTick = CurTick + m90e26STAT_INTVL ;
+		ssd1306SetDisplayState(0) ;
 	}
 	//
-	eChan = Index / halHAS_M90E26 ;
-	if (m90e26Config.Chan[eChan].Display) {
-		if (m90e26Config.NowContrast > 0) {
-			ssd1306SetDisplayState(&sSSD1306, 1) ;
-			ssd1306SetTextCursor(&sSSD1306, 0, 0) ;
-			pEpWork = &table_work[eChan == 0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
-			if ((Index % 2) == 0) {
-				devprintf(ssd1306PutC, "Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
-				xCompVarGetValue(&pEpWork[eVOLTS].Var, NULL),
-				xCompVarGetValue(&pEpWork[eFREQ].Var, NULL),
-				xCompVarGetValue(&pEpWork[eI_RMS_L].Var, NULL),
-				xCompVarGetValue(&pEpWork[eP_ACT_L].Var, NULL),
-				xCompVarGetValue(&pEpWork[eP_ANGLE_L].Var, NULL),
-				xCompVarGetValue(&pEpWork[eP_FACTOR_L].Var, NULL)) ;
-			} else {
-				devprintf(ssd1306PutC, "Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
-				xCompVarGetValue(&pEpWork[eE_ACT_FWD].Var, NULL),
-				xCompVarGetValue(&pEpWork[eE_ACT_REV].Var, NULL),
-				xCompVarGetValue(&pEpWork[eE_ACT_ABS].Var, NULL),
-				xCompVarGetValue(&pEpWork[eE_REACT_FWD].Var, NULL),
-				xCompVarGetValue(&pEpWork[eE_REACT_REV].Var, NULL),
-				xCompVarGetValue(&pEpWork[eE_REACT_ABS].Var, NULL)) ;
-			}
-		}
-	} else {
-		ssd1306SetDisplayState(&sSSD1306, 0) ;
-	}
-	Index++ ;
+	++Index ;
 	Index %= (halHAS_M90E26 * 2) ;
 	if (Index == 0) {
 		m90e26Config.NowContrast += m90e26STEP_CONTRAST ;
 		if (m90e26Config.NowContrast > m90e26Config.MaxContrast) {
 			m90e26Config.NowContrast = m90e26Config.MinContrast ;
 		}
-		ssd1306SetContrast(&sSSD1306, m90e26Config.NowContrast) ;
+		ssd1306SetContrast(m90e26Config.NowContrast) ;
 		IF_CPRINT(debugCONTRAST, "Contrast = %d\n", m90e26Config.NowContrast) ;
 	}
+	return ;
 }
 #endif
