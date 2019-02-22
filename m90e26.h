@@ -40,7 +40,7 @@
 
 #define M90E26_CALIB_TABLE		0						// 0=AMM, 1=Tisham, 2=DEFAULT
 // Only effective if (M90E26_CALIB_TABLE == 0) above !!!
-#define	M90E26_CALIB_SOFT		0						// enable software based calibration
+#define	M90E26_CALIB_SOFT		1						// enable software based calibration
 #define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
 
 #define	M90E26_RESOLUTION		1						// enable additional LSB values to be included

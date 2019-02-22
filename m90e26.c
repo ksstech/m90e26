@@ -51,7 +51,7 @@
 #include	<stdint.h>
 #include	<string.h>
 
-#define	debugFLAG					0xC000
+#define	debugFLAG					0xC100
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
@@ -301,9 +301,9 @@ void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
 
 // ############################## identification & initialization ##################################
 
-int32_t	m90e26Identify(uint8_t eDev) {
-	IF_myASSERT(debugPARAM, eDev < halHAS_M90E26) ;
-	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eDev], &m90e26_handle[eDev])) ;
+int32_t	m90e26Identify(uint8_t eChan) {
+	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
+	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
 	return erSUCCESS ;
 }
 
@@ -317,7 +317,7 @@ int32_t	m90e26Init(uint8_t eChan) {
 	uint16_t AdjStart = m90e26Read(eChan, ADJSTART) ;
 	IF_CPRINT(debugINIT, "m90e26 #%d Cal = 0X%04x Adj = 0X%04x\n", eChan, CalStart, AdjStart) ;
 	if (CalStart == CFGCOD && AdjStart == CFGCOD) {
-		IF_CPRINT(debugINIT, "ALREADY configured & running !!!!\n", eChan, CalStart, AdjStart) ;
+		SL_WARN("m90e26 #%d ALREADY configured & running", eChan) ;
 	} else {
 		// write the configuration registers with METER calibration data
 		for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeter); i++) {
