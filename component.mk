@@ -1,1 +1,1 @@
-# "./z-components/devices/*" pseudo-component makefile.
+# "./z-components/drivers/m90e26" pseudo-component makefile.
