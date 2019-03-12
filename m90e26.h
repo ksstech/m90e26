@@ -284,11 +284,11 @@ int32_t	m90e26Read_P_ANGLE_N(struct ep_work_s * pEpWork) ;
 struct rule_s ;
 int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
 
-void	m90e26ReportStatus(int32_t Handle, uint8_t eChan) ;
-void	m90e26ReportData(int32_t Handle, uint8_t eChan) ;
-void	m90e26ReportCalib(int32_t Handle, uint8_t eChan) ;
-void	m90e26ReportAdjust(int32_t Handle, uint8_t eChan) ;
-void	m90e26Report(int32_t Handle) ;
+void	m90e26ReportStatus(uint8_t eChan) ;
+void	m90e26ReportData(uint8_t eChan) ;
+void	m90e26ReportCalib(uint8_t eChan) ;
+void	m90e26ReportAdjust(uint8_t eChan) ;
+void	m90e26Report(void) ;
 void	m90e26Display(void) ;
 int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
 int32_t	m90e26DisplayState(uint8_t State) ;
