@@ -69,6 +69,7 @@
 #define	debugOFFSET					(debugFLAG & 0x0800)
 
 #define	debugCONTRAST				(debugFLAG & 0x1000)
+
 #define	debugPARAM					(debugFLAG & 0x4000)
 #define	debugRESULT					(debugFLAG & 0x8000)
 
@@ -179,14 +180,12 @@ const conf_reg_t CalibMeasure[] = {
 #if		(M90E26_CALIB_TABLE == 0)						// AMM values
 	{ V_GAIN,		0,	0x6C50 },
 	{ I_GAIN_L,		0,	0x7C2A },
-	#if	(M90E26_CALIB_SOFT == 0)
 	{ I_OFST_L,		0,	0xF800 },						// Trial & Error=F800, SoftCalib=FFF7
 	{ I_OFST_N,		0,	0xF400 },						// Trial & Error=F400, SoftCalib=FFF7
 	{ P_OFST_L,		0,	0xFFFF },						// CALCULATED
 	{ Q_OFST_L,		0,	0xFFFF },						// CALCULATED
 	{ P_OFST_N,		0,	0xFFFF },						// CALCULATED
 	{ Q_OFST_N,		0,	0xFFFF },						// CALCULATED
-	#endif
 
 #elif	(M90E26_CALIB_TABLE == 1)						// Tisham values
 	{ V_GAIN,		0,	0xD464 },
@@ -205,6 +204,17 @@ const conf_reg_t CalibMeasure[] = {
 	{ Q_OFST_N,		0,	0x0000 },
 #else
 	#error "Invalid calibration table value specified !!!"
+#endif
+} ;
+
+const uint8_t	m90e26RegAddr[] = {
+	E_ACT_FWD,	E_ACT_REV,	E_ACT_ABS,					// Active energy
+	E_REACT_FWD,E_REACT_REV,E_REACT_ABS,				// ReActive energy
+	I_RMS_L,	V_RMS,		P_ACT_L,	P_REACT_L,		// Voltage, Freq & LIVE Power info
+	FREQ,		P_FACTOR_L,	P_ANGLE_L,	P_APP_L,
+#if		(M90E26_NEUTRAL == 1)
+	I_RMS_N,	P_ACT_N,	P_REACT_N,					// NEUTRAL Power info
+	P_FACTOR_N,	P_ANGLE_N,	P_APP_N,
 #endif
 } ;
 
@@ -229,7 +239,7 @@ uint16_t m90e26Read(uint8_t eChan, uint8_t address) {
 	m90e26_buf.flags 		= SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA ;
 	m90e26_buf.tx_data[0]	= address | 0x80 ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
-	IF_PRINT(debugREAD, "RX: addr=%02x d0=%02x d1=%02x\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2]) ;
+	IF_PRINT(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]) ;
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
 }
 
@@ -252,7 +262,7 @@ void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint
 	Factor1 = (CurAmps * CurGain) / 2^8 ;
 	Factor2 = ~Factor1 & 0x0000FFFF ;
 	m90e26Write(eChan, RegOFST, Factor2) ;
-	IF_CPRINT(debugOFFSET, "Ch %d: Regs=%d/%d->%d  Il=0x%04x  Gl=0x%04x  F1=0x%08x  F2=0x%04x\n",
+	IF_PRINT(debugOFFSET, "Ch %d: Regs=%d/%d->%d  Il=0x%04x  Gl=0x%04x  F1=0x%08x  F2=0x%04x\n",
 			eChan, RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
 }
 
@@ -263,7 +273,7 @@ void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
 	}
 	uint16_t NewOffset = ~(SumOffset / M90E26_CALIB_ITER) ;
 	m90e26Write(eChan, RegOFST, NewOffset) ;
-	IF_CPRINT(debugOFFSET, "Ch %d: Regs=%d->%d  %dx  Sum=0x%08x  Ofst=0x%04x\n",
+	IF_PRINT(debugOFFSET, "Ch %d: Regs=%d->%d  %dx  Sum=0x%08x  Ofst=0x%04x\n",
 			eChan, RegPOWER, RegOFST, M90E26_CALIB_ITER, SumOffset, NewOffset) ;
 }
 
@@ -284,7 +294,7 @@ uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
 		Lcrc += RegData[i] & 0xFF ;
 		Hcrc ^= RegData[i] & 0xFF ;
 	}
-	IF_CPRINT(debugCRC, "CRC=%04x from %-'h", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
+	IF_PRINT(debugCRC, "CRC=%04x from %-'h", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
 	return (Hcrc << 8) | Lcrc ;
 }
 
@@ -313,10 +323,12 @@ int32_t	m90e26Identify(uint8_t eChan) {
 int32_t	m90e26Init(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	// check if maybe already configured and running
-	uint16_t CalStart = m90e26Read(eChan, CALSTART) ;
-	uint16_t AdjStart = m90e26Read(eChan, ADJSTART) ;
-	IF_CPRINT(debugINIT, "m90e26 #%d Cal = 0X%04x Adj = 0X%04x\n", eChan, CalStart, AdjStart) ;
-	if (CalStart == CFGCOD && AdjStart == CFGCOD) {
+	#define	R0VALUE		0x6720
+	#define	R1VALUE		0x7A13
+	uint16_t R0 = m90e26Read(eChan, V_GAIN) ;
+	uint16_t R1 = m90e26Read(eChan, I_GAIN_L) ;
+	IF_PRINT(debugINIT, "m90e26 #%d  R0=0x%04X  R1=0x%04X\n", eChan, R0, R1) ;
+	if ((R0 != R0VALUE) || (R1 != R1VALUE)) {
 		SL_WARN("m90e26 #%d ALREADY configured & running", eChan) ;
 	} else {
 		// write the configuration registers with METER calibration data
@@ -324,100 +336,114 @@ int32_t	m90e26Init(uint8_t eChan) {
 			m90e26Write(eChan, CalibMeter[i].addr, CalibMeter[i].raw_val) ;
 		}
 		m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
-		IF_CPRINT(debugINIT, "m90e26 #%d NEW Cal = 0X%04x\n", eChan, m90e26Read(eChan, CALSTART)) ;
 
 		// write the configuration registers with MEASURE calibration data
 		for (int32_t i = 0; i < NUM_OF_MEMBERS(CalibMeasure); i++) {
 			m90e26Write(eChan, CalibMeasure[i].addr, CalibMeasure[i].raw_val) ;
 		}
-
-	#if		(M90E26_CALIB_TABLE == 0) && (M90E26_CALIB_SOFT == 1)
-		/* Preference is to fix this functionality, then hard code the values into the
-		 * initialization table and do it that way. Alternative would be to run this
-		 * ONLY if calibration values cannot be found in NVS, same as WIFI credentials */
-		IF_CPRINT(debugINIT, "Ch %d: Offset Compensation start, DISCONNECT CT's\n", eChan) ;
-
-		/* LIVE & NEUTRAL Current Offset calibration not working properly
-		 * The formula as described in Atmel-46102-SE-M90E26-ApplicationNote.pdf
-		 * is NOT clear on the calculation and does not yield proper values  */
-		m90e26SetCurrentOffset(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
-		m90e26SetCurrentOffset(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
-
-		/* [Re]Active, LINE & NEUTRAL Power Offset calibration
-		 * Not sure if the power register should be read whilst in normal or
-		 * adjustment mode. Currently no real value is being read */
-		m90e26Write(eChan, POWER_MODE, PWRCOD) ;		// set into low power mode for calibration
-		m90e26SetPowerOffset(eChan, P_ACT_L, P_OFST_L) ;	// L Line Active Power Offset
-		m90e26SetPowerOffset(eChan, P_REACT_L, Q_OFST_L) ;	// L Line ReActive Power Offset
-		m90e26SetPowerOffset(eChan, P_ACT_N, P_OFST_N) ;	// N Line Active Power Offset
-		m90e26SetPowerOffset(eChan, P_REACT_N, Q_OFST_N) ;	// N Line ReActive Power Offset
-		m90e26Write(eChan, POWER_MODE, RSTCOD) ;		// reset to normal power mode
-
-		IF_CPRINT(debugINIT, "Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
-	#endif
-
 		m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;		// calculate & write CRC
-		IF_CPRINT(debugINIT, "m90e26 #%d NEW Adj = 0X%04x\n", eChan, m90e26Read(eChan, ADJSTART)) ;
 	}
 
 	// set default state
-	m90e26Config.Chan[eChan].L_Gain	= 1 ;
+	m90e26Config.Chan[eChan].L_Gain		= 1 ;
 #if		(M90E26_NEUTRAL == 1)
-	m90e26Config.Chan[eChan].N_Gain	= 1 ;
+	m90e26Config.Chan[eChan].N_Gain		= 1 ;
 #endif
-	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// WHr not KwHr
-	m90e26Config.Chan[eChan].P_Scale	= 0 ;			// W not Kw
+	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
+	m90e26Config.Chan[eChan].P_Scale	= 0 ;			// W not kW
 	m90e26Config.Chan[eChan].I_Scale	= 0 ;			// A not mA
 	m90e26Config.MaxContrast			= 255 ;
 
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
+void	m90e26Calibrate(uint8_t eChan) {
+	/* Preference is to fix this functionality, then hard code the values into the
+	 * initialization table and do it that way. Alternative would be to run this
+	 * ONLY if calibration values cannot be found in NVS, same as WIFI credentials */
+	IF_PRINT(debugINIT, "Ch %d: Offset Compensation start, DISCONNECT CT's\n", eChan) ;
+
+	m90e26Write(eChan, ADJSTART, STDCOD) ;
+	/* LIVE & NEUTRAL Current Offset calibration not working properly
+	 * The formula as described in Atmel-46102-SE-M90E26-ApplicationNote.pdf
+	 * is NOT clear on the calculation and does not yield proper values  */
+	m90e26SetCurrentOffset(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
+	m90e26SetCurrentOffset(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
+
+	/* [Re]Active, LINE & NEUTRAL Power Offset calibration
+	 * Not sure if the power register should be read whilst in normal or
+	 * adjustment mode. Currently no real value is being read */
+	m90e26Write(eChan, POWER_MODE, PWRCOD) ;			// set into low power mode for calibration
+	m90e26SetPowerOffset(eChan, P_ACT_L, P_OFST_L) ;	// L Line Active Power Offset
+	m90e26SetPowerOffset(eChan, P_REACT_L, Q_OFST_L) ;	// L Line ReActive Power Offset
+	m90e26SetPowerOffset(eChan, P_ACT_N, P_OFST_N) ;	// N Line Active Power Offset
+	m90e26SetPowerOffset(eChan, P_REACT_N, Q_OFST_N) ;	// N Line ReActive Power Offset
+	m90e26Write(eChan, POWER_MODE, RSTCOD) ;			// reset to normal power mode
+	m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;			// calculate & write CRC
+
+	IF_PRINT(debugINIT, "Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
+}
+
+// ############################### common support routines #########################################
+
+uint8_t	m90e26CalcInfo(ep_work_t * pEpWork) {
+	xEpWorkToUri(pEpWork) ;
+	pEpWork->idx = pEpWork->uri - URI_M90E26_E_ACT_FWD_0 ;
+	pEpWork->eChan = 0 ;
+#if		(halHAS_M90E26 > 1)
+	if (pEpWork->idx >= M90E26_NUMURI_0) {
+		pEpWork->idx -= M90E26_NUMURI_0 ;
+		++(pEpWork->eChan) ;
+	}
+#endif
+	IF_myASSERT(debugRESULT, (pEpWork->idx < M90E26_NUMURI_0) && (pEpWork->eChan < M90E26_NUM)) ;
+	return pEpWork->idx ;
+}
+
 // ############################# endpoint support functions ########################################
 
-// Common support routines
-
-int32_t	m90e26ReadEnergy(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
+int32_t	m90e26ReadEnergy(ep_work_t * pEpWork) {
 	if (pEpWork->Var.varDef.cv_sum) {					// if just a normal update cycle
-		uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-		uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
-		float f32Val	= (float) RawVal / (m90e26Config.Chan[eChan].E_Scale ? 10000.0 : 10.0) ;
+		m90e26CalcInfo(pEpWork) ;
+		uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
+		float f32Val	= (float) RawVal / (m90e26Config.Chan[pEpWork->eChan].E_Scale ? 10000.0 : 10.0) ;
 		xEpSetValue(pEpWork, (x32_t) f32Val) ;
-		IF_CPRINT(debugENERGY, "Energy: Ch=%d  eReg=%02X  Raw=0x%04X  Val=%9.3f\n", eChan, RegAddr, RawVal, f32Val) ;
+		IF_PRINT(debugENERGY, "Energy: Ch=%u  Reg=0x%02x  Raw=0x%04X  Val=%9.3f\n", pEpWork->eChan, m90e26RegAddr[pEpWork->idx], RawVal, f32Val) ;
 	} else {											// else it is a value reset call
 		vCompVarResetValue(&pEpWork->Var) ;
-		IF_CPRINT(debugENERGY, "Energy: Ch=%d   Sum RESET\n") ;
+		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
 	}
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadCurrent(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+int32_t	m90e26ReadCurrent(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float	f32Val	= (float) RawVal ;
 #if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(eChan, eLSB) ;
+	RawVal	= m90e26Read(pEpWork->eChan, LSB) ;
 	f32Val	+= (float) RawVal / 65536.0 ;
 #endif
-	if (m90e26Config.Chan[eChan].I_Scale == 0) {
+	if (m90e26Config.Chan[pEpWork->eChan].I_Scale == 0) {
 		f32Val	/= 1000.0 ;								// convert to Amp (not mA)
 	}
 
 #if		(M90E26_NEUTRAL == 1)
-	f32Val /= (eUri == URI_M90E26_I_RMS_L_0) ? m90e26Config.Chan[eChan].L_Gain : m90e26Config.Chan[eChan].N_Gain ;
+	uint8_t	eUri = m90e26CalcInfo(pEpWork) ;
+	f32Val /= ((eUri == URI_M90E26_I_RMS_L_0) || (eUri == URI_M90E26_I_RMS_L_1)) ? m90e26Config.Chan[pEpWork->eChan].L_Gain : m90e26Config.Chan[pEpWork->eChan].N_Gain ;
 #else
-	f32Val /= m90e26Config.Chan[eChan].L_Gain ;
+	f32Val /= m90e26Config.Chan[pEpWork->eChan].L_Gain ;
 #endif
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadVolts(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+int32_t	m90e26ReadVoltage(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float f32Val	= (float) RawVal ;
 #if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(eChan, eLSB) ;
+	RawVal	= m90e26Read(pEpWork->eChan, eLSB) ;
 	f32Val	+= (float) RawVal / 65536 ;
 #endif
 	f32Val	/= 100.0 ;
@@ -425,74 +451,50 @@ int32_t	m90e26ReadVolts(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPower(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+int32_t	m90e26ReadPower(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float f32Val	= (float) xConvert2sComp(RawVal, 16) ;
 #if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(eChan, eLSB) ;
+	RawVal	= m90e26Read(pEpWork->eChan, eLSB) ;
 	f32Val	+= (float) RawVal / 65536 ;
 #endif
-	if (m90e26Config.Chan[eChan].P_Scale == 1) {
-		f32Val	/= 1000.0 ;
+	if (m90e26Config.Chan[pEpWork->eChan].P_Scale == 1) {
+		f32Val	/= 1000.0 ;								// change Wh (default) to kWh
 	}
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
-	IF_CPRINT(debugPOWER, "Power: Ch=%d  eReg=%02X  Raw=0x%04X  Val=%9.3f\n", eChan, RegAddr, RawVal, f32Val) ;
+	IF_PRINT(debugPOWER, "Power: Ch=%d  Raw=0x%04X  Val=%9.3f\n", pEpWork->eChan, RawVal, f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadFrequency(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
+int32_t	m90e26ReadFrequency(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float f32Val	= (float) RawVal / 100.0 ;
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
-	IF_CPRINT(debugFREQ, "Freq: Ch=%d  eReg=%02X  Raw=0x%04X  Val=%9.3f\n", eChan, RegAddr, RawVal, f32Val) ;
+	IF_PRINT(debugFREQ, "Freq: Ch=%d  Raw=0x%04X  Val=%9.3f\n", pEpWork->eChan, RawVal, f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPowerFactor(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
-	int32_t ConVal = RawVal & 0x8000 ? -1 * (RawVal & 0x7FFF) : RawVal ;
+int32_t	m90e26ReadPowerFactor(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
+	int32_t ConVal	= (RawVal & 0x8000) ? (-1 * (RawVal & 0x7FFF)) : RawVal ;
 	float f32Val	= (float) ConVal / 1000.0 ;
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
-	IF_CPRINT(debugFACTOR, "PF: Ch=%d  eReg=%02X  Raw=0x%04X  Con=%d  Val=%9.3f\n", eChan, RegAddr, RawVal, ConVal, f32Val) ;
+	IF_PRINT(debugFACTOR, "PF: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", pEpWork->eChan, RawVal, ConVal, f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPowerAngle(ep_work_t * pEpWork, uint8_t RegAddr, uint8_t eUri) {
-	uint8_t	eChan	= (pEpWork == &table_work[eUri]) ? 0 : 1 ;
-	uint16_t RawVal	= m90e26Read(eChan, RegAddr) ;
-	int32_t ConVal = RawVal & 0x8000 ? -1 * (RawVal & 0x7FFF) : RawVal ;
+int32_t	m90e26ReadPowerAngle(ep_work_t * pEpWork) {
+	m90e26CalcInfo(pEpWork) ;
+	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
+	int32_t ConVal = (RawVal & 0x8000) ? (-1 * (RawVal & 0x7FFF)) : RawVal ;
 	float f32Val	= (float) ConVal / 10.0 ;
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
-	IF_CPRINT(debugANGLE, "Angle: Ch=%d  eReg=%02X  Raw=0x%04X  Con=%d  Val=%9.3f\n", eChan, RegAddr, RawVal, ConVal, f32Val) ;
+	IF_PRINT(debugANGLE, "Angle: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", pEpWork->eChan, RawVal, ConVal, f32Val) ;
 	return erSUCCESS ;
 }
-
-// Energy wrapper functions
-int32_t	m90e26Read_E_ACT_FWD(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_FWD, URI_M90E26_E_ACT_FWD_0) ; }
-int32_t	m90e26Read_E_ACT_REV(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_REV, URI_M90E26_E_ACT_REV_0) ; }
-int32_t	m90e26Read_E_ACT_ABS(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_ACT_ABS, URI_M90E26_E_ACT_ABS_0) ; }
-int32_t	m90e26Read_E_REACT_FWD(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_FWD, URI_M90E26_E_REACT_FWD_0) ; }
-int32_t	m90e26Read_E_REACT_REV(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_REV, URI_M90E26_E_REACT_REV_0) ; }
-int32_t	m90e26Read_E_REACT_ABS(ep_work_t * pEpWork)	{ return m90e26ReadEnergy(pEpWork, E_REACT_ABS, URI_M90E26_E_REACT_ABS_0) ; }
-// LIVE Line wrapper functions
-int32_t	m90e26Read_I_RMS_L(ep_work_t * pEpWork)		{ return m90e26ReadCurrent(pEpWork, I_RMS_L, URI_M90E26_I_RMS_L_0) ; }
-int32_t	m90e26Read_V_RMS(ep_work_t * pEpWork)		{ return m90e26ReadVolts(pEpWork, V_RMS, URI_M90E26_V_RMS_0) ; }
-int32_t	m90e26Read_P_ACT_L(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_ACT_L, URI_M90E26_P_ACT_L_0) ; }
-int32_t	m90e26Read_P_REACT_L(ep_work_t * pEpWork)	{ return m90e26ReadPower(pEpWork, P_REACT_L, URI_M90E26_P_REACT_L_0) ; }
-int32_t	m90e26Read_FREQ(ep_work_t * pEpWork)		{ return m90e26ReadFrequency(pEpWork, FREQ, URI_M90E26_FREQ_0) ; }
-int32_t	m90e26Read_P_FACTOR_L(ep_work_t * pEpWork)	{ return m90e26ReadPowerFactor(pEpWork, P_FACTOR_L, URI_M90E26_P_FACTOR_L_0) ; }
-int32_t	m90e26Read_P_ANGLE_L(ep_work_t * pEpWork)	{ return m90e26ReadPowerAngle(pEpWork, P_ANGLE_L, URI_M90E26_P_ANGLE_L_0) ; }
-int32_t	m90e26Read_P_APP_L(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_APP_L, URI_M90E26_P_APP_L_0) ; }
-// NEUTRAL Line wrapper functions
-int32_t	m90e26Read_I_RMS_N(ep_work_t * pEpWork)		{ return m90e26ReadCurrent(pEpWork, I_RMS_N, URI_M90E26_I_RMS_N_0) ; }
-int32_t	m90e26Read_P_ACT_N(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_ACT_N, URI_M90E26_P_ACT_N_0) ; }
-int32_t	m90e26Read_P_REACT_N(ep_work_t * pEpWork)	{ return m90e26ReadPower(pEpWork, P_REACT_N, URI_M90E26_P_REACT_N_0) ; }
-int32_t	m90e26Read_P_FACTOR_N(ep_work_t * pEpWork)	{ return m90e26ReadPowerFactor(pEpWork, P_FACTOR_N, URI_M90E26_P_FACTOR_N_0) ; }
-int32_t	m90e26Read_P_ANGLE_N(ep_work_t * pEpWork)	{ return m90e26ReadPowerAngle(pEpWork, P_ANGLE_N, URI_M90E26_P_ANGLE_N_0) ; }
-int32_t	m90e26Read_P_APP_N(ep_work_t * pEpWork)		{ return m90e26ReadPower(pEpWork, P_APP_N, URI_M90E26_P_APP_N_0) ; }
 
 inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26Read(eChan, SYS_STATUS) ; }
 inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26Read(eChan, MET_STATUS) ; }
@@ -600,7 +602,7 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 
 // ############################### device reporting functions ######################################
 
-void	m90e26ReportSystem(xprintf(uint8_t eChan) {
+void	m90e26ReportSystem(uint8_t eChan) {
 	m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
 	xprintf("Ch %d :  SystemStatus %04X", eChan, SysStatus.val) ;
 	if (SysStatus.CalErr)		xprintf("\tCRC_1 Error!!") ;
@@ -612,7 +614,7 @@ void	m90e26ReportSystem(xprintf(uint8_t eChan) {
 	xprintf("\n") ;
 }
 
-void	m90e26ReportMeter(xprintf(uint8_t eChan) {
+void	m90e26ReportMeter(uint8_t eChan) {
 	m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eChan) ;
 	xprintf("Ch %d :  MeterStatus %04X\n", eChan, MeterStatus.val) ;
 	if (MeterStatus.Qnoload)	xprintf("\tReActive NO Load  ") ;
@@ -626,7 +628,7 @@ void	m90e26ReportMeter(xprintf(uint8_t eChan) {
 								(MeterStatus.LNMode) == 0x1 ? "L only" : "AntiTamper") ;
 }
 
-void	m90e26ReportCalib(xprintf(uint8_t eChan) {
+void	m90e26ReportCalib(uint8_t eChan) {
 	xprintf("Ch %d:  CALSTRT  PLconsH  PLconsL    Lgain     Lphi    Ngain     Nphi  PStrtTh   PNolTh  QStrtTh   QNolTh    MMode    CRC_1\n     ", eChan) ;
 	for(int32_t i = CALSTART; i <= CRC_1; i++) {
 		xprintf("   0x%04X", m90e26Read(eChan, i)) ;
@@ -634,7 +636,7 @@ void	m90e26ReportCalib(xprintf(uint8_t eChan) {
 	xprintf("\n") ;
 }
 
-void	m90e26ReportAdjust(xprintf(uint8_t eChan) {
+void	m90e26ReportAdjust(uint8_t eChan) {
 	xprintf("Ch %d:  ADJSTRT    Vgain   IgainL   IgainN    Vofst   IofstL   IofstN   PofstL   QofstL   PofstN   QofstN    CRC_2\n     ", eChan) ;
 	for(int32_t i = ADJSTART; i <= CRC_2; i++) {
 		xprintf("   0x%04X", m90e26Read(eChan, i)) ;
@@ -675,7 +677,7 @@ static const uint8_t m90e26DataReg[] = {
 #endif
 } ;
 
-void	m90e26ReportData(xprintf(uint8_t eChan) {
+void	m90e26ReportData(uint8_t eChan) {
 	xprintf(M90E26_DATA_BASE_HEADING M90E26_DATA_HEADING_NEUTRAL M90E26_DATA_HEADING_LSB M90E26_DATA_HEADING_LASTDATA "\n     ", eChan) ;
 	for (int32_t i = 0; i < eNUM_DATA_REG; i++) {
 		xprintf("   0x%04X", m90e26Read(eChan, m90e26DataReg[i])) ;
@@ -683,7 +685,7 @@ void	m90e26ReportData(xprintf(uint8_t eChan) {
 	xprintf("\n") ;
 }
 
-void	m90e26Report(void)) {
+void	m90e26Report(void) {
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; eChan++) {
 		m90e26ReportCalib(eChan) ;
 		m90e26ReportAdjust(eChan) ;
@@ -765,7 +767,7 @@ void	m90e26Display(void) {
 			m90e26Config.NowContrast = m90e26Config.MinContrast ;
 		}
 		ssd1306SetContrast(m90e26Config.NowContrast) ;
-		IF_CPRINT(debugCONTRAST, "Contrast = %d\n", m90e26Config.NowContrast) ;
+		IF_PRINT(debugCONTRAST, "Contrast = %d\n", m90e26Config.NowContrast) ;
 	}
 	return ;
 }

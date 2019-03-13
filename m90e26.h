@@ -40,7 +40,7 @@
 
 #define M90E26_CALIB_TABLE		0						// 0=AMM, 1=Tisham, 2=DEFAULT
 // Only effective if (M90E26_CALIB_TABLE == 0) above !!!
-#define	M90E26_CALIB_SOFT		1						// enable software based calibration
+#define	M90E26_CALIB_SOFT		0						// enable software based calibration
 #define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
 
 #define	M90E26_RESOLUTION		1						// enable additional LSB values to be included
@@ -244,9 +244,9 @@ typedef union enstatus_u {
 
 // ####################################### Global functions ########################################
 
-struct	ep_work_s ;
-int32_t	m90e26Init(uint8_t eDev) ;
 int32_t	m90e26Identify(uint8_t eDev) ;
+int32_t	m90e26Init(uint8_t eDev) ;
+void	m90e26Calibrate(uint8_t eChan) ;
 
 void	m90e26DataReadAll(uint8_t eChan) ;
 void	m90e26DataConvertAll(uint8_t eChan) ;
@@ -259,27 +259,14 @@ void	m90e26SetOffsetCompensation(uint8_t eChan) ;
 uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
 
-int32_t	m90e26Read_E_ACT_FWD(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_E_ACT_REV(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_E_ACT_ABS(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_E_REACT_FWD(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_E_REACT_REV(struct ep_work_s * pEpWork)	;
-int32_t	m90e26Read_E_REACT_ABS(struct ep_work_s * pEpWork)	;
-
-int32_t	m90e26Read_I_RMS_L(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_I_RMS_N(struct ep_work_s * pEpWork)	;
-int32_t	m90e26Read_V_RMS(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_FREQ(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_ACT_L(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_REACT_L(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_APP_L(struct ep_work_s * pEpWork)	;
-int32_t	m90e26Read_P_ACT_N(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_REACT_N(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_APP_N(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_FACTOR_L(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_FACTOR_N(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_ANGLE_L(struct ep_work_s * pEpWork) ;
-int32_t	m90e26Read_P_ANGLE_N(struct ep_work_s * pEpWork) ;
+struct	ep_work_s ;
+int32_t	m90e26ReadEnergy(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadCurrent(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadVoltage(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadPower(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadFrequency(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadPowerFactor(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadPowerAngle(struct ep_work_s * pEpWork) ;
 
 struct rule_s ;
 int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
