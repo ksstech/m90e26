@@ -55,7 +55,7 @@
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
-#define	debugTIMING					(debugFLAG & 0x0004)
+#define	debugCURRENT				(debugFLAG & 0x0004)
 #define	debugENERGY					(debugFLAG & 0x0008)
 
 #define	debugFREQ					(debugFLAG & 0x0010)
@@ -69,7 +69,7 @@
 #define	debugOFFSET					(debugFLAG & 0x0800)
 
 #define	debugCONTRAST				(debugFLAG & 0x1000)
-
+#define	debugVOLTS					(debugFLAG & 0x2000)
 #define	debugPARAM					(debugFLAG & 0x4000)
 #define	debugRESULT					(debugFLAG & 0x8000)
 
@@ -431,21 +431,20 @@ int32_t	m90e26ReadCurrent(ep_work_t * pEpWork) {
 	m90e26CalcInfo(pEpWork) ;
 	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float	f32Val	= (float) RawVal ;
-#if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(pEpWork->eChan, LSB) ;
-	f32Val	+= (float) RawVal / 65536.0 ;
-#endif
+	uint16_t LSBval	= m90e26Read(pEpWork->eChan, LSB) ;
+	f32Val	+= (float) LSBval / 65536.0 ;
 	if (m90e26Config.Chan[pEpWork->eChan].I_Scale == 0) {
 		f32Val	/= 1000.0 ;								// convert to Amp (not mA)
 	}
 
 #if		(M90E26_NEUTRAL == 1)
 	uint8_t	eUri = m90e26CalcInfo(pEpWork) ;
-	f32Val /= ((eUri == URI_M90E26_I_RMS_L_0) || (eUri == URI_M90E26_I_RMS_L_1)) ? m90e26Config.Chan[pEpWork->eChan].L_Gain : m90e26Config.Chan[pEpWork->eChan].N_Gain ;
+	f32Val /= (eUri==URI_M90E26_I_RMS_L_0 || eUri==URI_M90E26_I_RMS_L_1) ? m90e26Config.Chan[pEpWork->eChan].L_Gain : m90e26Config.Chan[pEpWork->eChan].N_Gain ;
 #else
 	f32Val /= m90e26Config.Chan[pEpWork->eChan].L_Gain ;
 #endif
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	IF_PRINT(debugCURRENT, "Current: Ch=%d  Raw=0x%04X  LSB=0x%04x  Val=%9.3f\n", pEpWork->eChan, RawVal, LSBval, f32Val) ;
 	return erSUCCESS ;
 }
 
@@ -453,12 +452,11 @@ int32_t	m90e26ReadVoltage(ep_work_t * pEpWork) {
 	m90e26CalcInfo(pEpWork) ;
 	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float f32Val	= (float) RawVal ;
-#if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(pEpWork->eChan, eLSB) ;
-	f32Val	+= (float) RawVal / 65536 ;
-#endif
+	uint32_t LSBval	= m90e26Read(pEpWork->eChan, eLSB) ;
+	f32Val	+= (float) LSBval / 65536 ;
 	f32Val	/= 100.0 ;
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
+	IF_PRINT(debugVOLTS, "Volts: Ch=%d  Raw=0x%04X  LSB=0x%04x  Val=%9.3f\n", pEpWork->eChan, RawVal, LSBval, f32Val) ;
 	return erSUCCESS ;
 }
 
@@ -466,15 +464,13 @@ int32_t	m90e26ReadPower(ep_work_t * pEpWork) {
 	m90e26CalcInfo(pEpWork) ;
 	uint16_t RawVal	= m90e26Read(pEpWork->eChan, m90e26RegAddr[pEpWork->idx]) ;
 	float f32Val	= (float) xConvert2sComp(RawVal, 16) ;
-#if		(M90E26_RESOLUTION == 1)
-	RawVal	= m90e26Read(pEpWork->eChan, eLSB) ;
-	f32Val	+= (float) RawVal / 65536 ;
-#endif
+	uint16_t LSBval	= m90e26Read(pEpWork->eChan, eLSB) ;
+	f32Val	+= (float) LSBval / 65536 ;
 	if (m90e26Config.Chan[pEpWork->eChan].P_Scale == 1) {
 		f32Val	/= 1000.0 ;								// change Wh (default) to kWh
 	}
 	xEpSetValue(pEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugPOWER, "Power: Ch=%d  Raw=0x%04X  Val=%9.3f\n", pEpWork->eChan, RawVal, f32Val) ;
+	IF_PRINT(debugPOWER, "Power: Ch=%d  Raw=0x%04X  LSB=0x%04x  Val=%9.3f\n", pEpWork->eChan, RawVal, LSBval, f32Val) ;
 	return erSUCCESS ;
 }
 
@@ -663,11 +659,7 @@ void	m90e26ReportAdjust(uint8_t eChan) {
 	#define	M90E26_DATA_HEADING_NEUTRAL		""
 #endif
 
-#if		(M90E26_RESOLUTION == 1)						// LSB
 	#define	M90E26_DATA_HEADING_LSB			"      LSB"
-#else
-	#define	M90E26_DATA_HEADING_LSB			""
-#endif
 
 #if		(M90E26_LAST_DATA == 1)							// LAST_DATA
 	#define	M90E26_DATA_HEADING_LASTDATA	" LastData"
@@ -680,9 +672,7 @@ static const uint8_t m90e26DataReg[] = {
 #if		(M90E26_NEUTRAL == 1)
 	I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 #endif
-#if		(M90E26_RESOLUTION == 1)
  	LSB,
-#endif
 #if		(M90E26_LAST_DATA == 1)
 	LASTDATA,
 #endif

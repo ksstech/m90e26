@@ -43,7 +43,6 @@
 #define	M90E26_CALIB_SOFT		0						// enable software based calibration
 #define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
 
-#define	M90E26_RESOLUTION		1						// enable additional LSB values to be included
 #define	M90E26_LAST_DATA		1						// enable support for LASTDATA verification
 #define	M90E26_NEUTRAL			1
 
@@ -171,9 +170,7 @@ enum {													// sensor data registers
  	eP_APP_N,
 #endif
 
-#if		(M90E26_RESOLUTION == 1)						// extra resolution from LSB
  	eLSB,
-#endif
 
 #if		(M90E26_LAST_DATA == 1)
 	eLAST_DATA,
