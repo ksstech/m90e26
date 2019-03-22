@@ -75,9 +75,9 @@
 
 // ###################################### Private variables #######################################
 
-spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
+spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 #if		(halHAS_M90E26 > 0)
-	[0] = {
+	[M90E26_0] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
 		.dummy_bits			= 0,
@@ -95,7 +95,7 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 	},
 #endif
 #if		(halHAS_M90E26 > 1)
-	[1] = {
+	[M90E26_1] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
 		.dummy_bits			= 0,
@@ -128,8 +128,8 @@ struct {
 		uint8_t	Spare	: 3 ;
 		uint8_t	N_Gain	: 3 ;							// 1 -> 4
 		uint8_t	L_Gain	: 5 ;							// 1 -> 24
-	} Chan[halHAS_M90E26] ;
-} m90e26Config ;
+	} Chan[M90E26_NUM] ;
+} m90e26Config = { 0 } ;
 
 const conf_reg_t CalibMeter[] = {
 	{ CALSTART,		0,	STDCOD },
