@@ -115,6 +115,8 @@ spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 } ;
 
 spi_device_handle_t				m90e26_handle[M90E26_NUM] = { 0 } ;
+SemaphoreHandle_t				m90e26mutex[M90E26_NUM] = { 0 } ;
+
 struct {
 	uint8_t	tBlank ;									// # seconds to blank in between
 	uint8_t MinContrast ;
@@ -221,6 +223,8 @@ const uint8_t	m90e26RegAddr[] = {
 // ###################################### Private functions ########################################
 
 void	m90e26Write(uint8_t eChan, uint8_t address, uint16_t val) {
+	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
+	xSemaphoreTake(m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
 	m90e26_buf.length		= 8 * 3;
@@ -229,16 +233,20 @@ void	m90e26Write(uint8_t eChan, uint8_t address, uint16_t val) {
 	m90e26_buf.tx_data[1]	= val >> 8 ;
 	m90e26_buf.tx_data[2]	= val & 0xFF ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
+	xSemaphoreGive(m90e26mutex[eChan]) ;
 	IF_PRINT(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]) ;
 }
 
 uint16_t m90e26Read(uint8_t eChan, uint8_t address) {
+	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
+	xSemaphoreTake(m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf)) ;
 	m90e26_buf.length		= 8 * 3 ;
 	m90e26_buf.flags 		= SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA ;
 	m90e26_buf.tx_data[0]	= address | 0x80 ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
+	xSemaphoreGive(m90e26mutex[eChan]) ;
 	IF_PRINT(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]) ;
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
 }
@@ -314,6 +322,8 @@ void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
 int32_t	m90e26Identify(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
+	m90e26mutex[eChan]	= xSemaphoreCreateMutex() ;
+	IF_myASSERT(debugRESULT, m90e26mutex[eChan]) ;
 	return erSUCCESS ;
 }
 
