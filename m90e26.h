@@ -118,7 +118,7 @@
 
 // ######################################## Enumerations ###########################################
 
-enum {
+enum {													// eChan available
 #if		(halHAS_M90E26 > 0)
 	M90E26_0,
 #endif
@@ -128,7 +128,7 @@ enum {
 	M90E26_NUM,
 } ;
 
-enum {
+enum {													// configuration registers
 	eCALSTART,
 	ePLconstH,
 	ePLconstL,
@@ -144,7 +144,7 @@ enum {
 	eCRC_1,
 } ;
 
-enum {
+enum {													// sensor data registers
 // Energy
  	eE_ACT_FWD,
  	eE_ACT_REV,
@@ -162,7 +162,7 @@ enum {
  	eP_ANGLE_L,
  	eP_APP_L,
 
-#if		(M90E26_NEUTRAL == 1)		// Neutral Line
+#if		(M90E26_NEUTRAL == 1)							// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
@@ -171,7 +171,7 @@ enum {
  	eP_APP_N,
 #endif
 
-#if		(M90E26_RESOLUTION == 1)			// extra resolution from LSB
+#if		(M90E26_RESOLUTION == 1)						// extra resolution from LSB
  	eLSB,
 #endif
 

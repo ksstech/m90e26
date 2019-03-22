@@ -51,7 +51,7 @@
 #include	<stdint.h>
 #include	<string.h>
 
-#define	debugFLAG					0xC100
+#define	debugFLAG					0xCF00
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
@@ -114,7 +114,7 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 #endif
 } ;
 
-spi_device_handle_t				m90e26_handle[halHAS_M90E26] ;
+spi_device_handle_t				m90e26_handle[M90E26_NUM] = { 0 } ;
 struct {
 	uint8_t	tBlank ;									// # seconds to blank in between
 	uint8_t MinContrast ;
