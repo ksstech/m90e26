@@ -262,13 +262,10 @@ uint16_t m90e26ReadModifyWrite(uint8_t eChan, uint8_t Addr, uint16_t Value, uint
 // ################################## (re)configuration & CRCs #####################################
 
 void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
-	uint16_t CurAmps, CurGain ;
-	uint32_t Factor1, Factor2 ;
-
-	CurAmps = m90e26Read(eChan, RegRMS) ;
-	CurGain = m90e26Read(eChan, RegGAIN) ;
-	Factor1 = (CurAmps * CurGain) / 2^8 ;
-	Factor2 = ~Factor1 & 0x0000FFFF ;
+	uint16_t CurAmps = m90e26Read(eChan, RegRMS) ;
+	uint16_t CurGain = m90e26Read(eChan, RegGAIN) ;
+	uint32_t Factor1 = (CurAmps * CurGain) / 2^8 ;
+	uint32_t Factor2 = ~Factor1 & 0x0000FFFF ;
 	m90e26Write(eChan, RegOFST, Factor2) ;
 	IF_PRINT(debugOFFSET, "Ch %d: Regs=%d/%d->%d  Il=0x%04x  Gl=0x%04x  F1=0x%08x  F2=0x%04x\n",
 			eChan, RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
