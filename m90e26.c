@@ -375,7 +375,9 @@ void	m90e26Calibrate(uint8_t eChan) {
 	 * The formula as described in Atmel-46102-SE-M90E26-ApplicationNote.pdf
 	 * is NOT clear on the calculation and does not yield proper values  */
 	m90e26SetCurrentOffset(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
+#if		(M90E26_NEUTRAL == 1)
 	m90e26SetCurrentOffset(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
+#endif
 
 	/* [Re]Active, LINE & NEUTRAL Power Offset calibration
 	 * Not sure if the power register should be read whilst in normal or
@@ -383,8 +385,10 @@ void	m90e26Calibrate(uint8_t eChan) {
 	m90e26Write(eChan, POWER_MODE, PWRCOD) ;			// set into low power mode for calibration
 	m90e26SetPowerOffset(eChan, P_ACT_L, P_OFST_L) ;	// L Line Active Power Offset
 	m90e26SetPowerOffset(eChan, P_REACT_L, Q_OFST_L) ;	// L Line ReActive Power Offset
+#if		(M90E26_NEUTRAL == 1)
 	m90e26SetPowerOffset(eChan, P_ACT_N, P_OFST_N) ;	// N Line Active Power Offset
 	m90e26SetPowerOffset(eChan, P_REACT_N, Q_OFST_N) ;	// N Line ReActive Power Offset
+#endif
 	m90e26Write(eChan, POWER_MODE, RSTCOD) ;			// reset to normal power mode
 	m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;			// calculate & write CRC
 
