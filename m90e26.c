@@ -51,7 +51,7 @@
 #include	<stdint.h>
 #include	<string.h>
 
-#define	debugFLAG					0xCF00
+#define	debugFLAG					0xCF04
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
@@ -364,6 +364,9 @@ int32_t	m90e26Init(uint8_t eChan) {
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
+/* Overall process documented in the following Application Note:
+ * http://ww1.microchip.com/downloads/en/AppNotes/Atmel-46102-SE-M90E26-ApplicationNote.pdf
+ */
 void	m90e26Calibrate(uint8_t eChan) {
 	/* Preference is to fix this functionality, then hard code the values into the
 	 * initialization table and do it that way. Alternative would be to run this
@@ -371,9 +374,8 @@ void	m90e26Calibrate(uint8_t eChan) {
 	IF_PRINT(debugINIT, "Ch %d: Offset Compensation start, DISCONNECT CT's\n", eChan) ;
 
 	m90e26Write(eChan, ADJSTART, STDCOD) ;
-	/* LIVE & NEUTRAL Current Offset calibration not working properly
-	 * The formula as described in Atmel-46102-SE-M90E26-ApplicationNote.pdf
-	 * is NOT clear on the calculation and does not yield proper values  */
+	/* LIVE & NEUTRAL Current Offset calibration not working properly The formula as described
+	 * in the appnote is NOT clear on the calculation and does not yield proper values  */
 	m90e26SetCurrentOffset(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
 #if		(M90E26_NEUTRAL == 1)
 	m90e26SetCurrentOffset(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
