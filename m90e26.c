@@ -613,44 +613,44 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 
 void	m90e26ReportSystem(uint8_t eChan) {
 	m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
-	xprintf("Ch %d :  SystemStatus %04X", eChan, SysStatus.val) ;
-	if (SysStatus.CalErr)		xprintf("\tCRC_1 Error!!") ;
-	if (SysStatus.AdjErr)		xprintf("\tCRC_2 Error!!") ;
-	if (SysStatus.LnChge)		xprintf("\tMetering line L<>N change!!") ;
-	if (SysStatus.RevQchg)		xprintf("\tReactive Energy DIR change!!") ;
-	if (SysStatus.RevPchg)		xprintf("\tActive Energy DIR change!!") ;
-	if (SysStatus.SagWarn)		xprintf("\tVoltage SAG") ;
-	xprintf("\n") ;
+	printfx("Ch %d :  SystemStatus %04X", eChan, SysStatus.val) ;
+	if (SysStatus.CalErr)		printfx("\tCRC_1 Error!!") ;
+	if (SysStatus.AdjErr)		printfx("\tCRC_2 Error!!") ;
+	if (SysStatus.LnChge)		printfx("\tMetering line L<>N change!!") ;
+	if (SysStatus.RevQchg)		printfx("\tReactive Energy DIR change!!") ;
+	if (SysStatus.RevPchg)		printfx("\tActive Energy DIR change!!") ;
+	if (SysStatus.SagWarn)		printfx("\tVoltage SAG") ;
+	printfx("\n") ;
 }
 
 void	m90e26ReportMeter(uint8_t eChan) {
 	m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eChan) ;
-	xprintf("Ch %d :  MeterStatus %04X\n", eChan, MeterStatus.val) ;
-	if (MeterStatus.Qnoload)	xprintf("\tReActive NO Load  ") ;
-	if (MeterStatus.Pnoload)	xprintf("\tActive NO Load  ") ;
-	if (MeterStatus.RevQ)		xprintf("\tReActive Reverse  ") ;
-	if (MeterStatus.RevP)		xprintf("\tActive Reverse  ") ;
-	xprintf("Tamper %s  ", MeterStatus.Line ? "Live" : "Neutral") ;
-	xprintf("LineMode (%d) %s\n", MeterStatus.LNMode,
+	printfx("Ch %d :  MeterStatus %04X\n", eChan, MeterStatus.val) ;
+	if (MeterStatus.Qnoload)	printfx("\tReActive NO Load  ") ;
+	if (MeterStatus.Pnoload)	printfx("\tActive NO Load  ") ;
+	if (MeterStatus.RevQ)		printfx("\tReActive Reverse  ") ;
+	if (MeterStatus.RevP)		printfx("\tActive Reverse  ") ;
+	printfx("Tamper %s  ", MeterStatus.Line ? "Live" : "Neutral") ;
+	printfx("LineMode (%d) %s\n", MeterStatus.LNMode,
 								(MeterStatus.LNMode) == 0x3 ? "Flexible" :
 								(MeterStatus.LNMode) == 0x2 ? "L+N" :
 								(MeterStatus.LNMode) == 0x1 ? "L only" : "AntiTamper") ;
 }
 
 void	m90e26ReportCalib(uint8_t eChan) {
-	xprintf("Ch %d:  CALSTRT  PLconsH  PLconsL    Lgain     Lphi    Ngain     Nphi  PStrtTh   PNolTh  QStrtTh   QNolTh    MMode    CRC_1\n     ", eChan) ;
+	printfx("Ch %d:  CALSTRT  PLconsH  PLconsL    Lgain     Lphi    Ngain     Nphi  PStrtTh   PNolTh  QStrtTh   QNolTh    MMode    CRC_1\n     ", eChan) ;
 	for(int32_t i = CALSTART; i <= CRC_1; i++) {
-		xprintf("   0x%04X", m90e26Read(eChan, i)) ;
+		printfx("   0x%04X", m90e26Read(eChan, i)) ;
 	}
-	xprintf("\n") ;
+	printfx("\n") ;
 }
 
 void	m90e26ReportAdjust(uint8_t eChan) {
-	xprintf("Ch %d:  ADJSTRT    Vgain   IgainL   IgainN    Vofst   IofstL   IofstN   PofstL   QofstL   PofstN   QofstN    CRC_2\n     ", eChan) ;
+	printfx("Ch %d:  ADJSTRT    Vgain   IgainL   IgainN    Vofst   IofstL   IofstN   PofstL   QofstL   PofstN   QofstN    CRC_2\n     ", eChan) ;
 	for(int32_t i = ADJSTART; i <= CRC_2; i++) {
-		xprintf("   0x%04X", m90e26Read(eChan, i)) ;
+		printfx("   0x%04X", m90e26Read(eChan, i)) ;
 	}
-	xprintf("\n") ;
+	printfx("\n") ;
 }
 
 #define	M90E26_DATA_BASE_HEADING			"Ch %d:   ActFwd   ActRev   ActAbs   ReaFwd   ReaRev   ReaAbs    IrmsL     Vrms    PactL  PreactL     Freq   PfactL  PangleL    PappL"
@@ -681,11 +681,11 @@ static const uint8_t m90e26DataReg[] = {
 } ;
 
 void	m90e26ReportData(uint8_t eChan) {
-	xprintf(M90E26_DATA_BASE_HEADING M90E26_DATA_HEADING_NEUTRAL M90E26_DATA_HEADING_LSB M90E26_DATA_HEADING_LASTDATA "\n     ", eChan) ;
+	printfx(M90E26_DATA_BASE_HEADING M90E26_DATA_HEADING_NEUTRAL M90E26_DATA_HEADING_LSB M90E26_DATA_HEADING_LASTDATA "\n     ", eChan) ;
 	for (int32_t i = 0; i < eNUM_DATA_REG; i++) {
-		xprintf("   0x%04X", m90e26Read(eChan, m90e26DataReg[i])) ;
+		printfx("   0x%04X", m90e26Read(eChan, m90e26DataReg[i])) ;
 	}
-	xprintf("\n") ;
+	printfx("\n") ;
 }
 
 void	m90e26Report(void) {
