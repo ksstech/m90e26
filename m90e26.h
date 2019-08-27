@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 AM Maree/KSS Technologies (Pty) Ltd.
+ * Copyright 2018-19 AM Maree/KSS Technologies (Pty) Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  * and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -38,7 +38,7 @@
 
 // ##################################### BUILD definitions #########################################
 
-#define M90E26_CALIB_TABLE		0						// 0=AMM, 1=Tisham, 2=DEFAULT
+#define M90E26_CALIB_TABLE		2						// 0=AMM, 1=Tisham, 2=DEFAULT
 // Only effective if (M90E26_CALIB_TABLE == 0) above !!!
 #define	M90E26_CALIB_SOFT		0						// enable software based calibration
 #define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
@@ -50,7 +50,7 @@
 
 #define SOFTRESET			0x00	// Software Reset
 #define SYS_STATUS			0x01	// System Status
-#define FUNC_ENAB0			0x02	// Function Enable
+#define FUNC_ENAB			0x02	// Function Enable
 #define V_SAG_THR			0x03 	// Voltage Sag Threshold
 #define POWER_MODE			0x04 	// Small-Power Mode
 #define LASTDATA			0x06	// Last Read/Write SPI/UART Value
@@ -59,8 +59,8 @@
 #define CALSTART			0x20 	// Calibration Start Command
 #define PLconstH			0x21 	// High Word of PL_Constant
 #define PLconstL			0x22 	// Low Word of PL_Constant
-#define GAIN_A				0x23 	// L Line Calibration Gain
-#define PHI_A				0x24 	// L Line Calibration Angle
+#define L_GAIN				0x23 	// L Line Calibration Gain
+#define L_PHI				0x24 	// L Line Calibration Angle
 #define N_GAIN				0x25 	// N Line Calibration Gain
 #define N_PHI				0x26 	// N Line Calibration Angle
 #define P_SUP_TH			0x27 	// Active Startup Power Threshold
@@ -99,14 +99,14 @@
 #define P_REACT_L			0x4B 	// L Line Mean Reactive Power
 #define FREQ				0x4C 	// Voltage Frequency
 #define P_FACTOR_L			0x4D 	// L Line Power Factor
-#define P_ANGLE_L			0x4E 	// Phase Angle between Voltage and L Line Current
+#define P_ANGLE_L			0x4E 	// L Line Phase Angle between Voltage and Current
 #define P_APP_L 			0x4F 	// L Line Mean Apparent Power
 
 #define I_RMS_N 			0x68 	// N Line Current rms
 #define P_ACT_N 			0x6A 	// N Line Mean Active Power
 #define P_REACT_N 			0x6B 	// N Line Mean Reactive Power
 #define P_FACTOR_N 			0x6D 	// N Line Power Factor
-#define P_ANGLE_N 			0x6E 	// Phase Angle between Voltage and N Line Current
+#define P_ANGLE_N 			0x6E 	// N Line Phase Angle between Voltage and Current
 #define P_APP_N 			0x6F 	// N Line Mean Apparent Power
 
 #define	PWR_ON				0x6886	// indicates default Power On status, not measuring
@@ -169,12 +169,6 @@ enum {													// sensor data registers
  	eP_ANGLE_N,
  	eP_APP_N,
 #endif
-
- 	eLSB,
-
-#if		(M90E26_LAST_DATA == 1)
-	eLAST_DATA,
-#endif
 	eNUM_DATA_REG
  } ;
 
@@ -197,13 +191,15 @@ enum display_mode {
 	eDM_MAXIMUM,
 } ;
 
+enum { FACTORY = 0, CALIB1, CALIB2, CALIB3, CALIB_NUM} ;
+
 // ######################################### Structures ############################################
 
 typedef struct conf_reg_s {
  	uint8_t		addr ;
  	uint8_t		flag ;
  	uint16_t	raw_val ;
- } conf_reg_t ;
+} conf_reg_t ;
 
 typedef union {
 	struct {
@@ -220,7 +216,7 @@ typedef union {
 	uint16_t	val ;
 } m90e36system_stat_t ;
 
-typedef union enstatus_u {
+typedef union {
 	struct {
 		uint8_t		Qnoload	: 1 ;
 		uint8_t		Pnoload	: 1 ;
@@ -232,6 +228,15 @@ typedef union enstatus_u {
 	};
 	uint16_t	val ;
 } m90e26meter_stat_t ;
+
+struct m90e26_cal_s {
+	uint16_t	calreg[12] ;
+	uint16_t	adjreg[11] ;
+	uint16_t	spare[9] ;
+} ;
+DUMB_STATIC_ASSERT(sizeof(struct m90e26_cal_s) == 64) ;
+
+typedef	struct m90e26_cal_s nvs_m90e26_t ;
 
 // See http://www.catb.org/esr/structure-packing/
 // Also http://c0x.coding-guidelines.com/6.7.2.1.html
@@ -267,11 +272,6 @@ int32_t	m90e26ReadPowerAngle(struct ep_work_s * pEpWork) ;
 
 struct rule_s ;
 int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
-
-void	m90e26ReportStatus(uint8_t eChan) ;
-void	m90e26ReportData(uint8_t eChan) ;
-void	m90e26ReportCalib(uint8_t eChan) ;
-void	m90e26ReportAdjust(uint8_t eChan) ;
 void	m90e26Report(void) ;
 void	m90e26Display(void) ;
 int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
