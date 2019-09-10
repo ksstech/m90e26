@@ -530,19 +530,6 @@ void	m90e26CurrentOffsetCalibrate(uint8_t eChan) {
 #endif
 }
 
-int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
-	if (psEpWork->Var.varDef.cv.sumX) {					// if just a normal update cycle
-		int8_t eUri = m90e26CalcInfo(psEpWork) ;
-		uint16_t RawVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-		float f32Val	= (float) RawVal / (m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0) ;
-		xEpSetValue(psEpWork, (x32_t) f32Val) ;
-		IF_PRINT(debugENERGY, "Energy: URI=%d  Ch=%u  Reg=0x%02X  Raw=0x%04X  Val=%9.3f\n",
-				eUri, psEpWork->eChan, m90e26RegAddr[psEpWork->idx], RawVal, f32Val) ;
-	} else {											// else it is a value reset call
-		vCompVarResetValue(&psEpWork->Var) ;
-		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
-	}
-	return erSUCCESS ;
 void	m90e26Calibrate(uint8_t eChan) {
 	/* Preference is to fix this functionality, then hard code the values into the
 	 * initialization table and do it that way. Alternative would be to run this
@@ -606,6 +593,20 @@ int32_t	m90e26ReadPower(ep_work_t * psEpWork) {
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
 	IF_PRINT(debugPOWER, "Power: Ch=%d  Reg=%02X  Val=%9.3f\n", psEpWork->eChan, m90e26RegAddr[psEpWork->idx], f32Val) ;
 	return erSUCCESS ;
+}
+
+int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
+	if (psEpWork->Var.varDef.cv.sumX) {					// if just a normal update cycle
+		m90e26CalcInfo(psEpWork) ;
+		uint16_t RawVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
+		float f32Val	= (float) RawVal / (m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0) ;
+		xEpSetValue(psEpWork, (x32_t) f32Val) ;
+		IF_PRINT(debugENERGY, "Energy: URI=%d  Idx=%d  Ch=%u  Reg=0x%02X  Raw=0x%04X  Val=%9.3f\n",
+				psEpWork->uri, psEpWork->idx, psEpWork->eChan, m90e26RegAddr[psEpWork->idx], RawVal, f32Val) ;
+	} else {											// else it is a value reset call
+		vCompVarResetValue(&psEpWork->Var) ;
+		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
+	}
 	return erSUCCESS ;
 }
 
