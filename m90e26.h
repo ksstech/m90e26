@@ -109,11 +109,11 @@
 #define P_ANGLE_N 			0x6E 	// N Line Phase Angle between Voltage and Current
 #define P_APP_N 			0x6F 	// N Line Mean Apparent Power
 
-#define	PWR_ON				0x6886	// indicates default Power On status, not measuring
-#define	STDCOD				0x5678	// trigger calibration/adjustment
-#define	CFGCOD				0x8765	// check calibration/adjustment, start measurement if all OK
-#define	RSTCOD				0x789A	// trigger software reset
-#define	PWRCOD				0xA987	// Set small power mode
+#define	CODE_DFALT			0x6886	// indicates default Power On status, not measuring
+#define	CODE_START			0x5678	// Reset to defaults, start metering, allow calibration/adjustment
+#define	CODE_CHECK			0x8765	// check calibration/adjustment, continue measurement if all OK
+#define	CODE_RESET			0x789A	// trigger software reset
+#define	CODE_POWER			0xA987	// Set small power mode
 
 // ######################################## Enumerations ###########################################
 
