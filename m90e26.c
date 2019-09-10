@@ -234,6 +234,13 @@ uint16_t m90e26ReadModifyWrite(uint8_t eChan, uint8_t Addr, uint16_t Value, uint
 }
 
 // ################################## (re)configuration & CRCs #####################################
+int16_t m90e26ReadI16S(uint8_t eChan, uint8_t Reg) {
+	uint16_t RawVal = m90e26Read(eChan, Reg) ;
+	bool	Sign	= RawVal & 0x8000 ? true : false ;
+	int16_t	i16Val	= RawVal & 0x7FFF ;
+	int16_t	ConVal	= Sign ? -i16Val : i16Val ;
+	return ConVal ;
+}
 
 void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
 	uint16_t CurAmps = m90e26Read(eChan, RegRMS) ;
@@ -243,6 +250,36 @@ void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint
 	m90e26Write(eChan, RegOFST, Factor2) ;
 	IF_PRINT(debugOFFSET, "Ch %d: Rrms=%d Rgain=%d Rofst=%d  Icur=0x%04x  Gcur=0x%04x  F1=0x%08x  F2=0x%04x\n",
 			eChan, RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
+int16_t m90e26ReadI16TC(uint8_t eChan, uint8_t Reg) { return  xConvert2sComp(m90e26Read(eChan, Reg), 16) ; }
+
+uint32_t m90e26ReadU32(uint8_t eChan, uint8_t Reg) { return (m90e26Read(eChan, Reg) << 16) + m90e26Read(eChan, LSB) ; }
+
+int32_t m90e26ReadI32(uint8_t eChan, uint8_t Reg) { return xConvert2sComp(m90e26ReadU32(eChan, Reg), 32) ; }
+
+int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
+	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && Idx < CALIB_NUM) ;
+	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
+	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
+	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+	if (iRV == erSUCCESS) {
+		psCalib += Idx ;
+		// write the FuncEnab, Vsag Threshold and PowerMode registers
+		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, cfgreg); m90e26Write(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i) ;
+
+		// write the configuration registers with METER calibration data
+		m90e26Write(eChan, CALSTART, CODE_START) ;
+		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eChan, i+PLconstH, psCalib->calreg[i]), ++i) ;
+		m90e26Write(eChan, CALSTART, CODE_CHECK) ;
+
+		// write the configuration registers with MEASURE calibration data
+		m90e26Write(eChan, ADJSTART, CODE_START) ;
+		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eChan, i+U_GAIN, psCalib->adjreg[i]), ++i) ;
+		m90e26Write(eChan, ADJSTART, CODE_CHECK) ;
+	} else {
+		SL_ERR("Failed Ch %d config %d '%s' (%x)", eChan, Idx, esp_err_to_name(iRV), iRV) ;
+	}
+	free (psCalib) ;
+	return iRV ;
 }
 
 void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
