@@ -206,6 +206,21 @@ uint16_t m90e26Read(uint8_t eChan, uint8_t address) {
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
 }
 
+void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
+	IF_myASSERT(debugPARAM, eChan < M90E26_NUM) ;
+	if (INRANGE(PLconstH, Reg, MET_MODE, uint8_t)) {
+		m90e26Write(eChan, Reg, Val) ;
+		m90e26Write(eChan, CRC_1, m90e26Read(eChan, CRC_1)) ;
+	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N, uint8_t)) {
+		m90e26Write(eChan, Reg, Val) ;
+		m90e26Write(eChan, CRC_2, m90e26Read(eChan, CRC_2)) ;
+	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE, uint8_t)) {
+		m90e26Write(eChan, Reg, Val) ;
+	} else {
+		SL_ERR("Invalid register=0x%02X", Reg) ;
+	}
+}
+
 uint16_t m90e26ReadModifyWrite(uint8_t eChan, uint8_t Addr, uint16_t Value, uint16_t Mask) {
 	uint16_t CurValue = m90e26Read(eChan, Addr) ;
 	CurValue &= ~Mask ;
