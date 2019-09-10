@@ -71,7 +71,7 @@
 #define CRC_1				0x2C 	// Checksum 1
 
 #define ADJSTART			0x30 	// Measurement Calibration Start Command
-#define V_GAIN				0x31 	// Voltage rms Gain
+#define U_GAIN				0x31 	// Voltage rms Gain
 #define I_GAIN_L			0x32 	// L Line Current rms Gain
 #define I_GAIN_N			0x33 	// N Line Current rms Gain
 #define V_OFFSET			0x34 	// Voltage Offset
