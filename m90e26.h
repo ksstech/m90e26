@@ -229,10 +229,10 @@ typedef union {
 	uint16_t	val ;
 } m90e26meter_stat_t ;
 
-struct m90e26_cal_s {
-	uint16_t	calreg[12] ;
-	uint16_t	adjreg[11] ;
-	uint16_t	spare[9] ;
+ struct nvs_m90e26_s {
+	uint16_t	calreg[11] ;
+	uint16_t	adjreg[10] ;
+	uint16_t	cfgreg[3] ;
 } ;
 DUMB_STATIC_ASSERT(sizeof(struct m90e26_cal_s) == 64) ;
 
