@@ -537,8 +537,8 @@ int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
 	}
 
 #if		(M90E26_NEUTRAL == 1)
-	IF_myASSERT(debugRESULT, psEpWork->idx == eI_RMS_L || psEpWork->idx == eI_RMS_N) ;
-	if (psEpWork->idx == eI_RMS_L) {
+	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L || eIdx == eI_RMS_N) ;
+	if (eIdx == eI_RMS_L) {
 		f32Val /= m90e26Config.Chan[psEpWork->eChan].L_Gain ;
 		IF_PRINT(debugCURRENT, "  Lgain=%d", m90e26Config.Chan[psEpWork->eChan].L_Gain) ;
 	} else {
@@ -546,7 +546,7 @@ int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
 		IF_PRINT(debugCURRENT, "  Ngain=%d", m90e26Config.Chan[psEpWork->eChan].N_Gain) ;
 	}
 #else
-	IF_myASSERT(debugRESULT, psEpWork->idx == eI_RMS_L) ;
+	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L) ;
 	f32Val /= m90e26Config.Chan[psEpWork->eChan].L_Gain ;
 	IF_PRINT(debugCURRENT, "  Lgain=%d", m90e26Config.Chan[psEpWork->eChan].L_Gain) ;
 #endif
