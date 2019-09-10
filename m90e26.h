@@ -203,29 +203,29 @@ typedef struct conf_reg_s {
 
 typedef union {
 	struct {
-		uint8_t		CalErr	: 2 ;
-		uint8_t		AdjErr	: 2 ;
-		uint8_t		r1		: 4 ;
-		uint8_t		LnChge	: 1 ;
-		uint8_t		RevQchg	: 1 ;
-		uint8_t		RevPchg	: 1 ;
-		uint8_t		r2		: 3 ;
+		uint8_t		r3 		: 1 ;			// LSB
 		uint8_t		SagWarn	: 1 ;
-		uint8_t		r3 		: 1 ;
-	};
+		uint8_t		r2		: 3 ;
+		uint8_t		RevPchg	: 1 ;
+		uint8_t		RevQchg	: 1 ;
+		uint8_t		LnChge	: 1 ;
+		uint8_t		r1		: 4 ;
+		uint8_t		AdjErr	: 2 ;
+		uint8_t		CalErr	: 2 ;			// MSB
+	} ;
 	uint16_t	val ;
 } m90e36system_stat_t ;
 
 typedef union {
 	struct {
-		uint8_t		Qnoload	: 1 ;
-		uint8_t		Pnoload	: 1 ;
-		uint8_t		RevQ	: 1 ;
-		uint8_t		RevP	: 1 ;
-		uint8_t		Line	: 1 ;
+		uint8_t		LNMode	: 2 ;			// LCB
 		uint16_t	r1		: 9 ;
-		uint8_t		LNMode	: 2 ;
-	};
+		uint8_t		Line	: 1 ;
+		uint8_t		RevP	: 1 ;
+		uint8_t		RevQ	: 1 ;
+		uint8_t		Pnoload	: 1 ;
+		uint8_t		Qnoload	: 1 ;			// MSB
+};
 	uint16_t	val ;
 } m90e26meter_stat_t ;
 
