@@ -581,29 +581,29 @@ int32_t	m90e26ReadPower(ep_work_t * psEpWork) {
 int32_t	m90e26ReadFrequency(ep_work_t * psEpWork) {		// OK
 	m90e26CalcInfo(psEpWork) ;
 	uint16_t RawVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
+	IF_myASSERT(debugRESULT && debugFREQ, INRANGE(4500, RawVal, 6500, uint16_t)) ;
 	float f32Val	= (float) RawVal / 100.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugFREQ, "Freq: Ch=%d  Raw=0x%04X  Val=%9.3f\n", psEpWork->eChan, RawVal, f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPowerFactor(ep_work_t * psEpWork) {
+int32_t	m90e26ReadPowerFactor(ep_work_t * psEpWork) {	// OK
 	m90e26CalcInfo(psEpWork) ;
-	uint16_t RawVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-	int32_t ConVal	= (RawVal & 0x8000) ? (-1 * (RawVal & 0x7FFF)) : RawVal ;
+	int16_t ConVal = m90e26ReadI16S(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
+	IF_myASSERT(debugRESULT, INRANGE(-1000, ConVal, 1000, int16_t)) ;
 	float f32Val	= (float) ConVal / 1000.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugFACTOR, "PF: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", psEpWork->eChan, RawVal, ConVal, f32Val) ;
+	IF_PRINT(debugFACTOR, "PF: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", psEpWork->eChan, ConVal, f32Val) ;
 	return erSUCCESS ;
 }
 
 int32_t	m90e26ReadPowerAngle(ep_work_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
-	uint16_t RawVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-	int32_t ConVal = (RawVal & 0x8000) ? (-1 * (RawVal & 0x7FFF)) : RawVal ;
+	int16_t ConVal = m90e26ReadI16S(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
+	IF_myASSERT(debugRESULT, INRANGE(-1800, ConVal, 1800, int16_t)) ;
 	float f32Val	= (float) ConVal / 10.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugANGLE, "Angle: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", psEpWork->eChan, RawVal, ConVal, f32Val) ;
+	IF_PRINT(debugANGLE, "Angle: Ch=%d  Raw=0x%04X  Con=%d  Val=%9.3f\n", psEpWork->eChan, ConVal, f32Val) ;
 	return erSUCCESS ;
 }
 
