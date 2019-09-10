@@ -661,7 +661,7 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 
 int32_t m90e26SoftReset(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
-	m90e26Write(eChan, SOFTRESET, RSTCOD) ;
+	m90e26Write(eChan, SOFTRESET, CODE_RESET) ;
 	return erSUCCESS ;
 }
 
