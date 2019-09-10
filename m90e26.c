@@ -525,13 +525,9 @@ int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 }
 
 int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
-	uint8_t eUri = m90e26CalcInfo(psEpWork) ;
-	uint32_t HiVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-	uint32_t LoVal	= m90e26Read(psEpWork->eChan, LSB) ;
-	uint32_t x32Val = (HiVal << 16) + LoVal ;
-	float	f32Val	= (float) x32Val ;
-	IF_PRINT(debugCURRENT, "Irms: eUri=%d  Reg=%02X  Ch=%d  Hi=0x%04X  Lo=0x%04X  x32=0x%08X",
-			eUri, m90e26RegAddr[psEpWork->idx], psEpWork->eChan, HiVal, LoVal, x32Val) ;
+	uint8_t	eIdx = m90e26CalcInfo(psEpWork) ;
+	float	f32Val	= (float) m90e26ReadU32(psEpWork->eChan, m90e26RegAddr[eIdx]) ;
+	IF_PRINT(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEpWork->uri, eIdx, m90e26RegAddr[eIdx], psEpWork->eChan) ;
 	if (m90e26Config.Chan[psEpWork->eChan].I_Scale == 0) {
 		f32Val	/= 65536000.0 ;								// convert to Amp (not mA)
 		IF_PRINT(debugCURRENT, "  Val=%4.5fA", f32Val) ;
@@ -561,31 +557,24 @@ int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
 
 int32_t	m90e26ReadVoltage(ep_work_t * psEpWork) {		// OK
 	m90e26CalcInfo(psEpWork) ;
-	uint32_t HiVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-	uint32_t LoVal	= m90e26Read(psEpWork->eChan, LSB) ;
-	uint32_t x32Val = (HiVal << 16) + LoVal ;
-	float f32Val	= (float) x32Val ;
+	float	f32Val	= (float) m90e26ReadU32(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 	f32Val			/= 6553600.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugVOLTS, "Vrms: Ch=%d  Hi=0x%04X  Lo=0x%04X  x32=0x%08X  Val=%9.3f\n",
-			psEpWork->eChan, HiVal, LoVal, x32Val, f32Val) ;
+	IF_PRINT(debugVOLTS, "Vrms: Ch=%d  Val=%9.3f\n", psEpWork->eChan, f32Val) ;
 	return erSUCCESS ;
 }
 
 int32_t	m90e26ReadPower(ep_work_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
-	uint32_t HiVal	= m90e26Read(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
-	uint32_t LoVal	= m90e26Read(psEpWork->eChan, LSB) ;
-	uint32_t x32Val = (HiVal << 16) + LoVal ;
-	float f32Val	= (float) xConvert2sComp(x32Val, 32) ;
+	float	f32Val	= (float) m90e26ReadI32(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 	if (m90e26Config.Chan[psEpWork->eChan].P_Scale == 1) {
 		f32Val	/= 65536000.0 ;							// make KWh (alt range)
 	} else {
 		f32Val	/= 65536.0 ;							// make Wh (default)
 	}
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
-	IF_PRINT(debugPOWER, "Power: Ch=%d  Reg=%02X  x16=0x%04X  x8=0x%04x  x32=0x%08X  Val=%9.3f\n",
-			psEpWork->eChan, m90e26RegAddr[psEpWork->idx], HiVal, LoVal, x32Val, f32Val) ;
+	IF_PRINT(debugPOWER, "Power: Ch=%d  Reg=%02X  Val=%9.3f\n", psEpWork->eChan, m90e26RegAddr[psEpWork->idx], f32Val) ;
+	return erSUCCESS ;
 	return erSUCCESS ;
 }
 
