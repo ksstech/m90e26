@@ -475,31 +475,30 @@ int32_t	m90e26Init(uint8_t eChan) {
  * Not sure if the power register should be read whilst in normal or
  * adjustment mode. Currently no real value is being read
  */
-void	m90e26Calibrate(uint8_t eChan) {
-	/* Preference is to fix this functionality, then hard code the values into the
-	 * initialization table and do it that way. Alternative would be to run this
-	 * ONLY if calibration values cannot be found in NVS, same as WIFI credentials */
-	IF_PRINT(debugINIT, "Ch %d: Offset Compensation start, DISCONNECT CT's\n", eChan) ;
-	m90e26Write(eChan, ADJSTART, STDCOD) ;
-	/* LIVE & NEUTRAL Current Offset calibration not working properly The formula as described
-	 * in the appnote is NOT clear on the calculation and does not yield proper values  */
-	m90e26SetCurrentOffset(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
-#if		(M90E26_NEUTRAL == 1)
-	m90e26SetCurrentOffset(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
+void	m90e26PowerOffsetCalcSet(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
+#if		0		// read as I16TC, sum -> avg -> bitcomp -> write
+	int32_t SumOffset = 0 ;
+	for (int32_t i = 0; i < m90e26CALIB_ITER; SumOffset += m90e26ReadI16TC(eChan, RegPOWER), ++i) ;
+	int16_t NewOffset = ~(SumOffset / m90e26CALIB_ITER) ;
+#elif 	1	// read as U16, no conversion, sum -> avg -> bitcomp -> write
+	uint32_t SumOffset = 0 ;
+	for (int32_t i = 0; i < m90e26CALIB_ITER; SumOffset += m90e26Read(eChan, RegPOWER), ++i) ;
+	uint16_t NewOffset = ~(SumOffset / m90e26CALIB_ITER) ;
 #endif
-	/* [Re]Active, LINE & NEUTRAL Power Offset calibration
-	 * Not sure if the power register should be read whilst in normal or
-	 * adjustment mode. Currently no real value is being read */
-	m90e26Write(eChan, POWER_MODE, PWRCOD) ;			// set into low power mode for calibration
-	m90e26SetPowerOffset(eChan, P_ACT_L, P_OFST_L) ;	// L Line Active Power Offset
-	m90e26SetPowerOffset(eChan, P_REACT_L, Q_OFST_L) ;	// L Line ReActive Power Offset
+
+	m90e26WriteRegister(eChan, RegOFST, NewOffset) ;
+	IF_PRINT(debugOFFSET, "Ch %d: R=%02X->%02X  %dx  S=0x%08X  O=0x%04X\n", eChan, RegPOWER, RegOFST, m90e26CALIB_ITER, SumOffset, NewOffset) ;
+}
+
+void	m90e26PowerOffsetCalibrate(uint8_t eChan) {
+	m90e26Write(eChan, POWER_MODE, CODE_POWER) ;		// set into low power mode for calibration
+	m90e26PowerOffsetCalcSet(eChan, P_ACT_L, P_OFST_L) ;	// L Line Active Power Offset
+	m90e26PowerOffsetCalcSet(eChan, P_REACT_L, Q_OFST_L) ;	// L Line ReActive Power Offset
 #if		(M90E26_NEUTRAL == 1)
-	m90e26SetPowerOffset(eChan, P_ACT_N, P_OFST_N) ;	// N Line Active Power Offset
-	m90e26SetPowerOffset(eChan, P_REACT_N, Q_OFST_N) ;	// N Line ReActive Power Offset
+	m90e26PowerOffsetCalcSet(eChan, P_ACT_N, P_OFST_N) ;	// N Line Active Power Offset
+	m90e26PowerOffsetCalcSet(eChan, P_REACT_N, Q_OFST_N) ;	// N Line ReActive Power Offset
 #endif
-	m90e26Write(eChan, POWER_MODE, RSTCOD) ;			// reset to normal power mode
-	m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;			// calculate & write CRC
-	IF_PRINT(debugINIT, "Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
+	m90e26Write(eChan, POWER_MODE, CODE_RESET) ;		// reset to normal power mode
 }
 
 // ############################### common support routines #########################################
@@ -513,12 +512,32 @@ uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
 		psEpWork->idx -= M90E26_NUMURI_0 ;
 		++(psEpWork->eChan) ;
 	}
+void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
+#if 0
+	uint32_t CurAmps = m90e26Read(eChan, RegRMS) ;
+	uint32_t CurGain = m90e26Read(eChan, RegGAIN) ;
+	uint32_t Factor1 = (CurAmps * CurGain) >> 8 ;		// divide 2^8
+	uint32_t Factor2 = ~Factor1 & 0x0000FFFF ;
+#else
+	uint32_t CurAmps = m90e26Read(eChan, RegRMS) ;
+	uint32_t CurGain = m90e26Read(eChan, RegGAIN) ;
+	uint32_t Factor1 = (CurAmps * CurGain) >> 24 ;		// divide 2^16 and 2^8
+	uint32_t Factor2 = ~Factor1 ;
 #endif
-	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < M90E26_NUM)) ;
-	return psEpWork->idx ;
+	m90e26WriteRegister(eChan, RegOFST, Factor2) ;
+	IF_PRINT(debugOFFSET, "Ch %d %s: Rrms=%02X Rgain=%02X Rofst=%02X  Icur=0x%04X  Gcur=0x%04X  F1=0x%08X  F2=0x%08X\n",
+			eChan, RegRMS == I_RMS_L ? "Live" : "Neutral", RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
 }
 
 // ############################# endpoint support functions ########################################
+void	m90e26CurrentOffsetCalibrate(uint8_t eChan) {
+	/* LIVE & NEUTRAL Current Offset calibration not working properly The formula as described
+	 * in the appnote is NOT clear on the calculation and does not yield proper values  */
+	m90e26CurrentOffsetCalcSet(eChan, I_RMS_L, I_GAIN_L, I_OFST_L) ;
+#if		(M90E26_NEUTRAL == 1)
+	m90e26CurrentOffsetCalcSet(eChan, I_RMS_N, I_GAIN_N, I_OFST_N) ;
+#endif
+}
 
 int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 	if (psEpWork->Var.varDef.cv.sumX) {					// if just a normal update cycle
@@ -533,6 +552,14 @@ int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
 	}
 	return erSUCCESS ;
+void	m90e26Calibrate(uint8_t eChan) {
+	/* Preference is to fix this functionality, then hard code the values into the
+	 * initialization table and do it that way. Alternative would be to run this
+	 * ONLY if calibration values cannot be found in NVS, same as WIFI credentials */
+	IF_PRINT(debugINIT, "Ch %d: Offset Compensation start, DISCONNECT CT's\n", eChan) ;
+	m90e26PowerOffsetCalibrate(eChan) ;
+	m90e26CurrentOffsetCalibrate(eChan) ;
+	IF_PRINT(debugINIT, "Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
 }
 
 int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
