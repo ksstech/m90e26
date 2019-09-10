@@ -41,7 +41,8 @@
 #define M90E26_CALIB_TABLE		2						// 0=AMM, 1=Tisham, 2=DEFAULT
 // Only effective if (M90E26_CALIB_TABLE == 0) above !!!
 #define	M90E26_CALIB_SOFT		0						// enable software based calibration
-#define	M90E26_CALIB_ITER		100						// number of READ iterations to determine mean value
+#define	m90e26CALIB_ITER		10						// number of READ iterations to determine mean value
+#define	m90e26CALIB_32BIT		0
 
 #define	M90E26_LAST_DATA		1						// enable support for LASTDATA verification
 #define	M90E26_NEUTRAL			1
