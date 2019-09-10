@@ -545,25 +545,40 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 // ############################### device reporting functions ######################################
 
 #define	HDR_CALIB		"Ch CALSTRT PLconsH PLconsL   Lgain    Lphi   Ngain    Nphi PStrtTh  PNolTh QStrtTh  QNolTh   MMode   CRC_1"
-#define	HDR_ADJUST		"Ch ADJSTRT   Vgain  IgainL  IgainN   Vofst  IofstL  IofstN  PofstL  QofstL  PofstN  QofstN   CRC_2"
+#define	HDR_MMODE		"  LgainN   LNSel 0-HPF-1 AmodCF1 RmodCF2   Zxmod Pthres%"
+#define	HDR_ADJUST		"Ch ADJSTRT   Ugain  IgainL  IgainN   Vofst  IofstL  IofstN  PofstL  QofstL  PofstN  QofstN   CRC_2"
 #define	HDR_DATA_LIVE	"Ch  ActFwd  ActRev  ActAbs  ReaFwd  ReaRev  ReaAbs   IrmsL    Vrms   PactL PreactL Freq Hz  PfactL PangleL   PappL"
-#define	HDR_DATA_NEUT	  "   IrmsN   PactN PreactN  PfactN PangleN   PappN"
+#if		(M90E26_NEUTRAL == 1)
+	#define	HDR_DATA_NEUT	  "   IrmsN   PactN PreactN  PfactN PangleN   PappN"
+#else
+	#define	HDR_DATA_NEUT	  ""
+#endif
 #define	HDR_STATUS		"Ch  System    CRC1    CRC2  L/N Ch RevQchg RevPchg SagWarn   Meter Qnoload Pnoload    RevQ    RevP  Tamper  L-Mode"
 #define	BLANK8			"        "
 
+
 static const uint8_t m90e26DataReg[] = {
-	E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS, I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
-	I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N, LSB, LASTDATA,
+	E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS,
+	I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
+	I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 } ;
 
 void	m90e26ReportCalib(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_CALIB, attrRESET) ;
+	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_CALIB HDR_MMODE, attrRESET) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		PRINT("%2d", eChan) ;
-		for (int32_t i = CALSTART; i <= CRC_1; i++) {
-			PRINT("  0x%04X", m90e26Read(eChan, i)) ;
-		}
-		PRINT("\n") ;
+		for (int32_t i = CALSTART; i <= CRC_1; PRINT("  0x%04X", m90e26Read(eChan, i++))) ;
+		m90e26meter_mode_t	MeterMode = (m90e26meter_mode_t) m90e26Read(eChan, MET_MODE) ;
+		uint8_t	Pthres[16] = { 200, 100, 50, 25, 16, 32, 48, 64,80, 96, 112, 128, 144, 160, 176, 192 } ;
+		PRINT("  %-2s  %2s %7s %7s %7s %7s  %6s %2.4f\n",
+			MeterMode.Lgain == 3 ? "24" : MeterMode.Lgain == 2 ? "16" : MeterMode.Lgain == 1 ? "8" : MeterMode.Lgain == 0 ? "4" : "1",
+			MeterMode.Ngain == 0 ? "2" : MeterMode.Ngain == 1 ? "4" : "1",
+			MeterMode.LNSel ? "Live" : "Neutral",
+			MeterMode.DisHPF == 0 ? "Ena Ena" : MeterMode.DisHPF == 1 ? "Ena Dis" : MeterMode.DisHPF == 2 ? "Dis Ena" : "Dis Dis",
+			MeterMode.Amod	? "Abs" : "Act",
+			MeterMode.Rmod	? "Abs" : "ReAct",
+			MeterMode.Zxcon	== 0 ? "AllPos" : MeterMode.Zxcon	== 1 ? "AllNeg" : MeterMode.Zxcon	== 2 ? "All+/-" : "None",
+			(float) Pthres[MeterMode.Pthresh] / 16) ;
 	}
 }
 
