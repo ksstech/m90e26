@@ -241,14 +241,6 @@ int16_t m90e26ReadI16S(uint8_t eChan, uint8_t Reg) {
 	return ConVal ;
 }
 
-void	m90e26SetCurrentOffset(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
-	uint16_t CurAmps = m90e26Read(eChan, RegRMS) ;
-	uint16_t CurGain = m90e26Read(eChan, RegGAIN) ;
-	uint32_t Factor1 = (CurAmps * CurGain) / 2^8 ;
-	uint32_t Factor2 = ~Factor1 & 0x0000FFFF ;
-	m90e26Write(eChan, RegOFST, Factor2) ;
-	IF_PRINT(debugOFFSET, "Ch %d: Rrms=%d Rgain=%d Rofst=%d  Icur=0x%04x  Gcur=0x%04x  F1=0x%08x  F2=0x%04x\n",
-			eChan, RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
 int16_t m90e26ReadI16TC(uint8_t eChan, uint8_t Reg) { return  xConvert2sComp(m90e26Read(eChan, Reg), 16) ; }
 
 uint32_t m90e26ReadU32(uint8_t eChan, uint8_t Reg) { return (m90e26Read(eChan, Reg) << 16) + m90e26Read(eChan, LSB) ; }
@@ -281,17 +273,9 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 	return iRV ;
 }
 
-void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
-	uint32_t SumOffset = 0 ;
-	for (int32_t i = 0; i < M90E26_CALIB_ITER; i++) {
-		SumOffset += m90e26Read(eChan, RegPOWER) ;
 // ############################### (re)configuration & calibration #################################
 
 	}
-	uint16_t NewOffset = ~(SumOffset / M90E26_CALIB_ITER) ;
-	m90e26Write(eChan, RegOFST, NewOffset) ;
-	IF_PRINT(debugOFFSET, "Ch %d: Regs=%d->%d  %dx  Sum=0x%08x  Ofst=0x%04x\n",
-			eChan, RegPOWER, RegOFST, M90E26_CALIB_ITER, SumOffset, NewOffset) ;
 }
 
 /**
