@@ -222,10 +222,14 @@ void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 }
 
 uint16_t m90e26ReadModifyWrite(uint8_t eChan, uint8_t Addr, uint16_t Value, uint16_t Mask) {
+	IF_PRINT(debugRMW, "  C=%d  R=%d  &=x%04X  |=x%04X", eChan, Addr, Value, Mask) ;
 	uint16_t CurValue = m90e26Read(eChan, Addr) ;
+	IF_PRINT(debugRMW, "  V=x%04X", CurValue) ;
 	CurValue &= ~Mask ;
+	IF_PRINT(debugRMW, " -> x%04X", CurValue) ;
 	CurValue |= Value ;
-	m90e26Write(eChan, Addr, CurValue) ;
+	IF_PRINT(debugRMW, " -> x%04X\n", CurValue) ;
+	m90e26WriteRegister(eChan, Addr, CurValue) ;
 	return CurValue ;
 }
 
