@@ -30,7 +30,7 @@
 
 #include	"hal_config.h"
 
-#if		(halHAS_M90E26 > 0)
+#if		(ESP32_VARIANT == 4)
 
 #include	"endpoints.h"
 #include	"rules_engine.h"
@@ -38,33 +38,32 @@
 #include	"x_systiming.h"					// timing debugging
 #include	"x_syslog.h"
 #include	"x_values_convert.h"
+#include	"x_string_to_values.h"
 
 #include	"hal_debug.h"
 #include	"hal_spi.h"
 #include	"hal_storage.h"
-#include	"m90e26.h"
-
-#if		(halHAS_SSD1306 > 0)
-	#include	"ssd1306/ssd1306.h"
-#endif
+#include	"m90e26/m90e26.h"
+#include	"ssd1306/ssd1306.h"
 
 #include	<stdint.h>
 #include	<string.h>
 
-#define	debugFLAG					0xC800
+#define	debugFLAG					0xC840
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
-#define	debugCURRENT				(debugFLAG & 0x0004)
-#define	debugENERGY					(debugFLAG & 0x0008)
+#define	debugRMW					(debugFLAG & 0x0004)
+#define	debugFREQ					(debugFLAG & 0x0008)
 
-#define	debugFREQ					(debugFLAG & 0x0010)
-#define	debugFACTOR					(debugFLAG & 0x0020)
-#define	debugANGLE					(debugFLAG & 0x0040)
-#define	debugPOWER					(debugFLAG & 0x0080)
+#define	debugINIT					(debugFLAG & 0x0010)
+#define	debugMODE					(debugFLAG & 0x0020)
+#define	debugCURRENT				(debugFLAG & 0x0040)
+#define	debugENERGY					(debugFLAG & 0x0080)
 
-#define	debugINIT					(debugFLAG & 0x0100)
-#define	debugMODE					(debugFLAG & 0x0200)
+#define	debugFACTOR					(debugFLAG & 0x0100)
+#define	debugANGLE					(debugFLAG & 0x0200)
+#define	debugPOWER					(debugFLAG & 0x0400)
 #define	debugOFFSET					(debugFLAG & 0x0800)
 
 #define	debugCONTRAST				(debugFLAG & 0x1000)
@@ -173,9 +172,10 @@ nvs_m90e26_t	nvsM90E26default = {
 #endif
 } ;
 
-nvs_m90e26_t	nvsM90E26[CALIB_NUM] ;
+// ################################### forward declared functions ##################################
 
-// ###################################### Private functions ########################################
+
+// ############################### common support routines #########################################
 
 void	m90e26Write(uint8_t eChan, uint8_t address, uint16_t val) {
 	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
@@ -233,7 +233,6 @@ uint16_t m90e26ReadModifyWrite(uint8_t eChan, uint8_t Addr, uint16_t Value, uint
 	return CurValue ;
 }
 
-// ################################## (re)configuration & CRCs #####################################
 int16_t m90e26ReadI16S(uint8_t eChan, uint8_t Reg) {
 	uint16_t RawVal = m90e26Read(eChan, Reg) ;
 	bool	Sign	= RawVal & 0x8000 ? true : false ;
@@ -286,6 +285,8 @@ void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
 	uint32_t SumOffset = 0 ;
 	for (int32_t i = 0; i < M90E26_CALIB_ITER; i++) {
 		SumOffset += m90e26Read(eChan, RegPOWER) ;
+// ############################### (re)configuration & calibration #################################
+
 	}
 	uint16_t NewOffset = ~(SumOffset / M90E26_CALIB_ITER) ;
 	m90e26Write(eChan, RegOFST, NewOffset) ;
@@ -461,8 +462,18 @@ int32_t	m90e26Init(uint8_t eChan) {
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
-/* Overall process documented in the following Application Note:
- * http://ww1.microchip.com/downloads/en/AppNotes/Atmel-46102-SE-M90E26-ApplicationNote.pdf
+/* ######################################## Calibration ############################################
+ * Overall process documented in the following Application Note:
+ * http://ww1.microchip.com/downloads/en/AppNotes/Atmel-46102-SE-M90E26-ApplicationNote.pdf */
+
+/**
+ * m90e26SetPowerOffset() -
+ * @param	eChan
+ * @param	RegPower
+ * @param	RegOFST
+ * [Re]Active, LINE & NEUTRAL Power Offset calibration
+ * Not sure if the power register should be read whilst in normal or
+ * adjustment mode. Currently no real value is being read
  */
 void	m90e26Calibrate(uint8_t eChan) {
 	/* Preference is to fix this functionality, then hard code the values into the
