@@ -229,6 +229,20 @@ typedef union {
 	uint16_t	val ;
 } m90e26meter_stat_t ;
 
+typedef union {
+	struct {
+		uint8_t		Pthresh	: 4 ;			// LSB
+		uint8_t		Zxcon	: 2 ;
+		uint8_t		Rmod	: 1 ;
+		uint8_t		Amod	: 1 ;
+		uint8_t		DisHPF	: 2 ;
+		uint8_t		LNSel	: 1 ;
+		uint8_t		Ngain	: 2 ;
+		uint8_t		Lgain	: 3 ;			// MSB
+	} ;
+	uint16_t	val ;
+} m90e26meter_mode_t;
+
  struct nvs_m90e26_s {
 	uint16_t	calreg[11] ;
 	uint16_t	adjreg[10] ;
