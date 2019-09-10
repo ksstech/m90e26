@@ -428,42 +428,32 @@ int32_t	m90e26Identify(uint8_t eChan) {
  */
 int32_t	m90e26Init(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
-	// check if maybe already configured and running
-	if ((m90e26Read(eChan, V_GAIN)		== nvsM90E26default.adjreg[1]) &&
-		(m90e26Read(eChan, I_GAIN_L)	== nvsM90E26default.adjreg[2]) &&
-		(m90e26Read(eChan, V_OFFSET)	== nvsM90E26default.adjreg[4]) &&
-		(m90e26Read(eChan, I_OFST_L)	== nvsM90E26default.adjreg[5])) {
-		SL_WARN("m90e26 #%d ALREADY configured & running", eChan) ;
-	} else {
-		/* Check that blob with CALibration and ADJustment values exists
-		 * If not existing, create with factory defaults as first record
-		 */
-		size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
-		nvs_m90e26_t * psCalib = malloc(SizeBlob);
-		int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
-		if (iRV != erSUCCESS) {
-			bzero(psCalib, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
-			memcpy(psCalib, &nvsM90E26default, sizeof(nvs_m90e26_t)) ;
-			iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob) ;
-		}
-		// write the configuration registers with METER calibration data
-		for (int32_t i = 0; i < SIZEOF_MEMBER(nvs_m90e26_t, calreg); i++) {
-			m90e26Write(eChan, CALSTART+i, nvsM90E26default.calreg[i]) ;
-		}
-		m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
-
-		// write the configuration registers with MEASURE calibration data
-		for (int32_t i = 0; i < SIZEOF_MEMBER(nvs_m90e26_t, adjreg); i++) {
-			m90e26Write(eChan, ADJSTART+i, nvsM90E26default.adjreg[i]) ;
-		}
-		m90e26HandleCRC(eChan, ADJSTART, CRC_2) ;		// calculate & write CRC
+	/* Check that blob with CALibration and ADJustment values exists
+	 * If not existing, create with factory defaults as first record
+	 */
+	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
+	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
+	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+	if (iRV != erSUCCESS || SizeBlob != CALIB_NUM * sizeof(nvs_m90e26_t)) {
+		bzero(psCalib, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
+		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default)) ;
+		iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob) ;
+		SL_WARN("NVS defaults create %s", iRV == erSUCCESS ? "Success" : "Failed") ;
+		IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
 	}
+	free(psCalib) ;
+
+	// start with default values, not running, no valid values
+	m90e26Write(eChan, SOFTRESET, CODE_RESET) ;
+
+	// load config #0 from NVS blob as default
+	m90e26LoadNVSConfig(eChan, 0) ;
 
 	// set default state
 	m90e26Config.Chan[eChan].L_Gain		= 1 ;
-	#if	(M90E26_NEUTRAL == 1)
+#if	(M90E26_NEUTRAL == 1)
 	m90e26Config.Chan[eChan].N_Gain		= 1 ;
-	#endif
+#endif
 	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
 	m90e26Config.Chan[eChan].P_Scale	= 0 ;			// W not kW
 	m90e26Config.Chan[eChan].I_Scale	= 0 ;			// A not mA
