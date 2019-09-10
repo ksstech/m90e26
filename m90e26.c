@@ -275,6 +275,17 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 
 // ############################### (re)configuration & calibration #################################
 
+uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
+	xEpWorkToUri(psEpWork) ;
+	psEpWork->idx = psEpWork->uri - URI_M90E26_E_ACT_FWD_0 ;
+	psEpWork->eChan = 0 ;
+	// In case of multiple channels, adjust till in range....
+	while (psEpWork->idx >= M90E26_NUMURI_0) {
+		psEpWork->idx -= M90E26_NUMURI_0 ;
+		psEpWork->eChan++ ;
+	}
+	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < M90E26_NUM)) ;
+	return psEpWork->idx ;
 	}
 }
 
@@ -487,15 +498,6 @@ void	m90e26PowerOffsetCalibrate(uint8_t eChan) {
 
 // ############################### common support routines #########################################
 
-uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
-	xEpWorkToUri(psEpWork) ;
-	psEpWork->idx = psEpWork->uri - URI_M90E26_E_ACT_FWD_0 ;
-	psEpWork->eChan = 0 ;
-#if		(halHAS_M90E26 > 1)
-	if (psEpWork->idx >= M90E26_NUMURI_0) {
-		psEpWork->idx -= M90E26_NUMURI_0 ;
-		++(psEpWork->eChan) ;
-	}
 void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
 #if 0
 	uint32_t CurAmps = m90e26Read(eChan, RegRMS) ;
