@@ -156,7 +156,7 @@ nvs_m90e26_t	nvsM90E26[CALIB_NUM] ;
 
 void	m90e26Write(uint8_t eChan, uint8_t address, uint16_t val) {
 	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
-	xSemaphoreTake(m90e26mutex[eChan], portMAX_DELAY) ;
+	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
 	m90e26_buf.length		= 8 * 3;
@@ -165,20 +165,20 @@ void	m90e26Write(uint8_t eChan, uint8_t address, uint16_t val) {
 	m90e26_buf.tx_data[1]	= val >> 8 ;
 	m90e26_buf.tx_data[2]	= val & 0xFF ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
-	xSemaphoreGive(m90e26mutex[eChan]) ;
+	xRtosSemaphoreGive(&m90e26mutex[eChan]) ;
 	IF_PRINT(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]) ;
 }
 
 uint16_t m90e26Read(uint8_t eChan, uint8_t address) {
 	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
-	xSemaphoreTake(m90e26mutex[eChan], portMAX_DELAY) ;
+	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf)) ;
 	m90e26_buf.length		= 8 * 3 ;
 	m90e26_buf.flags 		= SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA ;
 	m90e26_buf.tx_data[0]	= address | 0x80 ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
-	xSemaphoreGive(m90e26mutex[eChan]) ;
+	xRtosSemaphoreGive(&m90e26mutex[eChan]) ;
 	IF_PRINT(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]) ;
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
 }
