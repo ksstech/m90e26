@@ -286,6 +286,14 @@ uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
 	}
 	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < M90E26_NUM)) ;
 	return psEpWork->idx ;
+}
+
+void	CmndM90_WriteChannels(uint8_t Chan, uint8_t Reg, uint16_t Value) {
+	if (Chan < M90E26_NUM) {
+		m90e26WriteRegister(Chan, Reg, Value);
+	} else {
+		m90e26WriteRegister(0, Reg, Value);
+		m90e26WriteRegister(1, Reg, Value);
 	}
 }
 
@@ -496,8 +504,6 @@ void	m90e26PowerOffsetCalibrate(uint8_t eChan) {
 	m90e26Write(eChan, POWER_MODE, CODE_RESET) ;		// reset to normal power mode
 }
 
-// ############################### common support routines #########################################
-
 void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, uint8_t RegOFST) {
 #if 0
 	uint32_t CurAmps = m90e26Read(eChan, RegRMS) ;
@@ -515,7 +521,6 @@ void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, 
 			eChan, RegRMS == I_RMS_L ? "Live" : "Neutral", RegRMS, RegGAIN, RegOFST, CurAmps, CurGain, Factor1, Factor2) ;
 }
 
-// ############################# endpoint support functions ########################################
 void	m90e26CurrentOffsetCalibrate(uint8_t eChan) {
 	/* LIVE & NEUTRAL Current Offset calibration not working properly The formula as described
 	 * in the appnote is NOT clear on the calculation and does not yield proper values  */
@@ -547,6 +552,8 @@ void	m90e26Calibrate(uint8_t eChan) {
 	m90e26CurrentOffsetCalibrate(eChan) ;
 	IF_PRINT(debugINIT, "Ch %d: Offset Compensation done, RECONNECT CT's\n", eChan) ;
 }
+
+// ############################# endpoint support functions ########################################
 
 int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
 	uint8_t	eIdx = m90e26CalcInfo(psEpWork) ;
