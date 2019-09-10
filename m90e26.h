@@ -260,6 +260,9 @@ typedef	struct nvs_m90e26_s nvs_m90e26_t ;
 
 // ####################################### Global functions ########################################
 
+int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) ;
+void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) ;
+
 int32_t	m90e26Identify(uint8_t eDev) ;
 int32_t	m90e26Init(uint8_t eDev) ;
 void	m90e26Calibrate(uint8_t eChan) ;
@@ -270,7 +273,14 @@ void	m90e26DataConvertAll(uint8_t eChan) ;
 int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) ;
 int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) ;
 
-void	m90e26SetOffsetCompensation(uint8_t eChan) ;
+char *	CmndM90A(char * pCmdBuf) ;
+char *	CmndM90C(char * pCmdBuf) ;
+char *	CmndM90D(char * pCmdBuf) ;
+char *	CmndM90L(char * pCmdBuf) ;
+char *	CmndM90N(char * pCmdBuf) ;
+char *	CmndM90R(char * pCmdBuf) ;
+char *	CmndM90S(char * pCmdBuf) ;		// save channel 0 config to blob element 'x'
+char *	CmndM90Z(char * pCmdBuf) ;		// soft reset
 
 uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
