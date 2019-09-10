@@ -500,12 +500,23 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	IF_PRINT(debugMODE, "m90e26 Mode  p0=%d  p1=%d  p2=%d\n", psRule->para.u32[0][0], psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
 	int32_t iRV = erSUCCESS ;
 	switch (psRule->para.u32[0][0]) {
-	case eL_GAIN:	iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;		break ;
+	case eL_GAIN:
+		iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
+		break ;
+
 #if		(M90E26_NEUTRAL == 1)		// NEUTRAL Line wrapper functions
-	case eN_GAIN:	iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;	break ;
+	case eN_GAIN:
+		iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
+		break ;
 #endif
-	case eSOFTRESET:iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;									break ;
-	case eRECALIB:	iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;								break ;
+
+	case eSOFTRESET:
+		iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;
+		break ;
+
+	case eRECALIB:
+		iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;
+		break ;
 
 #if		(halHAS_SSD1306 > 0)
 	case eBRIGHT:
@@ -535,9 +546,12 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	#endif
 		break ;
 
-	case eBLANKING:	m90e26Config.tBlank = psRule->para.u32[0][1] ;									break ;
+	case eBLANKING:
+		m90e26Config.tBlank = psRule->para.u32[0][1] ;
+		break ;
 #endif
-	default:		iRV = erSCRIPT_INV_MODE ;
+	default:
+		iRV = erSCRIPT_INV_MODE ;
 	}
 	return iRV ;
 }
