@@ -65,7 +65,6 @@
 
 #define	debugINIT					(debugFLAG & 0x0100)
 #define	debugMODE					(debugFLAG & 0x0200)
-#define	debugCRC					(debugFLAG & 0x0400)
 #define	debugOFFSET					(debugFLAG & 0x0800)
 
 #define	debugCONTRAST				(debugFLAG & 0x1000)
@@ -215,35 +214,13 @@ void	m90e26SetPowerOffset(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
 }
 
 /**
- * m90e26CalcCRC() - calculate the CRC for a range of registers
  */
-uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
-	uint8_t Lcrc = 0, Hcrc = 0 ;
-	uint16_t RegData[Count] ;
-	for (int32_t i = 0; i < Count; i++) {				// read the range of registers
-		RegData[i] = m90e26Read(eChan, Addr0 + i) ;
 	}
-	for (int32_t i = 0; i < Count; i++) {				// HI bytes: MOD256 sum & XOR
-		Lcrc += RegData[i] >> 8 ;
-		Hcrc ^= RegData[i] >> 8 ;
 	}
-	for (int32_t i = 0; i < Count; i++) {				// LO bytes: MOD256 sum & XOR
-		Lcrc += RegData[i] & 0xFF ;
-		Hcrc ^= RegData[i] & 0xFF ;
-	}
-	IF_PRINT(debugCRC, "CRC=%04x from %-'h\n", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
-	return (Hcrc << 8) | Lcrc ;
 }
 
 /**
- * m90e26HandleCRC() - Calculate the CRC from the range of registers & write the lock register/pattern
  */
-void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
-	IF_myASSERT(debugPARAM, (eChan < halHAS_M90E26) &&
-							((RegAddr1==CALSTART && RegAddr2==CRC_1) ||
-							 (RegAddr1==ADJSTART && RegAddr2==CRC_2) ) ) ;
-	m90e26Write(eChan, RegAddr2, m90e26CalcCRC(eChan, RegAddr1 + 1, RegAddr2 - RegAddr1 - 1)) ;
-	m90e26Write(eChan, RegAddr1, CFGCOD) ;
 }
 
 // ############################## identification & initialization ##################################
