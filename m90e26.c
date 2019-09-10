@@ -644,7 +644,6 @@ int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
 	default:	IF_SL_ERR(debugPARAM, "Invalid Live Gain =%d", Gain) ;			return erSCRIPT_INV_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0xE000) ;
-	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
 	return erSUCCESS ;
 }
 
@@ -657,7 +656,6 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 	default:	IF_SL_ERR(debugPARAM, "Invalid Neutral Gain =%d", Gain) ;		return erSCRIPT_INV_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0x1800) ;
-	m90e26HandleCRC(eChan, CALSTART, CRC_1) ;
 	return erSUCCESS ;
 }
 
