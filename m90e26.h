@@ -248,9 +248,9 @@ typedef union {
 	uint16_t	adjreg[10] ;
 	uint16_t	cfgreg[3] ;
 } ;
-DUMB_STATIC_ASSERT(sizeof(struct m90e26_cal_s) == 64) ;
+DUMB_STATIC_ASSERT(sizeof(struct nvs_m90e26_s) == 48) ;
 
-typedef	struct m90e26_cal_s nvs_m90e26_t ;
+typedef	struct nvs_m90e26_s nvs_m90e26_t ;
 
 // See http://www.catb.org/esr/structure-packing/
 // Also http://c0x.coding-guidelines.com/6.7.2.1.html
