@@ -38,14 +38,11 @@
 
 // ##################################### BUILD definitions #########################################
 
-#define M90E26_CALIB_TABLE		2						// 0=AMM, 1=Tisham, 2=DEFAULT
-// Only effective if (M90E26_CALIB_TABLE == 0) above !!!
-#define	M90E26_CALIB_SOFT		0						// enable software based calibration
+// select inclusion of LSB value for RMS and power measurements
+#define	m90e26USE_LSB			1						// add LSB to RMS & Pwr values read
+#define	m90e26CALIB_32BIT		1
+#define	m90e26NEUTRAL			1
 #define	m90e26CALIB_ITER		10						// number of READ iterations to determine mean value
-#define	m90e26CALIB_32BIT		0
-
-#define	M90E26_LAST_DATA		1						// enable support for LASTDATA verification
-#define	M90E26_NEUTRAL			1
 
 // ############################################# Macros ############################################
 
@@ -162,7 +159,7 @@ enum {													// sensor data registers
  	eP_ANGLE_L,
  	eP_APP_L,
 
-#if		(M90E26_NEUTRAL == 1)							// Neutral Line
+#if		(m90e26NEUTRAL == 1)							// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
@@ -279,6 +276,8 @@ char *	CmndM90C(char * pCmdBuf) ;
 char *	CmndM90D(char * pCmdBuf) ;
 char *	CmndM90L(char * pCmdBuf) ;
 char *	CmndM90N(char * pCmdBuf) ;
+char *	CmndM90O(char * pCmdBuf) ;
+char *	CmndM90P(char * pCmdBuf) ;
 char *	CmndM90R(char * pCmdBuf) ;
 char *	CmndM90S(char * pCmdBuf) ;		// save channel 0 config to blob element 'x'
 char *	CmndM90Z(char * pCmdBuf) ;		// soft reset
@@ -287,16 +286,18 @@ uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
 
 struct	ep_work_s ;
-int32_t	m90e26ReadEnergy(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadCurrent(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadVoltage(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadPower(struct ep_work_s * pEpWork) ;
+
+int32_t	m90e26ReadEnergy(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadFrequency(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadPowerFactor(struct ep_work_s * pEpWork) ;
 int32_t	m90e26ReadPowerAngle(struct ep_work_s * pEpWork) ;
 
 struct rule_s ;
 int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
+
 void	m90e26Report(void) ;
 void	m90e26Display(void) ;
 int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
