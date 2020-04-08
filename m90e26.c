@@ -30,7 +30,7 @@
 
 #include	"hal_config.h"
 
-#if		(ESP32_VARIANT == 4)
+#if		(ESP32_VARIANT == ESP32_VAR_EM1P2)
 
 #include	"endpoints.h"
 #include	"rules_engine.h"
@@ -754,7 +754,7 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	#endif
 	#if	(halHAS_M90E26 > 1)
 		if (psRule->para.u32[0][2] < eDM_MAXIMUM) {
-			m90e26Config.eChan[M90E26_1].Display = psRule->para.u32[0][2] ;
+			m90e26Config.Chan[M90E26_1].Display = psRule->para.u32[0][2] ;
 		} else {
 			iRV = erSCRIPT_INV_PARA ;
 		}
