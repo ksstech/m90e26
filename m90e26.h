@@ -26,6 +26,10 @@
 
 #include	<stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Notes & references:
  * mode option to select WHr or KWHr, set default, variable used as divisor
  *
@@ -302,3 +306,7 @@ void	m90e26Report(void) ;
 void	m90e26Display(void) ;
 int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
 int32_t	m90e26DisplayState(uint8_t State) ;
+
+#ifdef __cplusplus
+}
+#endif

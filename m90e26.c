@@ -43,6 +43,8 @@
 #include	"hal_debug.h"
 #include	"hal_spi.h"
 #include	"hal_storage.h"
+#include	"hal_gpio.h"
+
 #include	"m90e26/m90e26.h"
 #include	"ssd1306/ssd1306.h"
 
@@ -534,8 +536,7 @@ int32_t	m90e26Identify(uint8_t eChan) {
 int32_t	m90e26Init(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	/* Check that blob with CALibration and ADJustment values exists
-	 * If not existing, create with factory defaults as first record
-	 */
+	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
@@ -715,28 +716,19 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	IF_PRINT(debugMODE, "m90e26 Mode  p0=%d  p1=%d  p2=%d\n", psRule->para.u32[0][0], psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
 	int32_t iRV = erSUCCESS ;
 	switch (psRule->para.u32[0][0]) {
-	case eL_GAIN:
-		iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
-		break ;
+	case eL_GAIN:		iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;		break ;
 
 #if		(m90e26NEUTRAL == 1)		// NEUTRAL Line wrapper functions
-	case eN_GAIN:
-		iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
-		break ;
+	case eN_GAIN:		iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;	break ;
 #endif
 
-	case eSOFTRESET:
-		iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;
-		break ;
+	case eSOFTRESET:	iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;									break ;
 
-	case eRECALIB:
-		iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;
-		break ;
+	case eRECALIB:		iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;								break ;
 
 #if		(halHAS_SSD1306 > 0)
 	case eBRIGHT:
-		if ((psRule->para.u32[0][2] <= 255) &&
-			(psRule->para.u32[0][1] <= psRule->para.u32[0][2])) {
+		if ((psRule->para.u32[0][2] <= 255) && (psRule->para.u32[0][1] <= psRule->para.u32[0][2])) {
 			m90e26Config.MinContrast = psRule->para.u32[0][1] ;
 			m90e26Config.MaxContrast = psRule->para.u32[0][2] ;
 		} else {
@@ -761,12 +753,9 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	#endif
 		break ;
 
-	case eBLANKING:
-		m90e26Config.tBlank = psRule->para.u32[0][1] ;
-		break ;
+	case eBLANKING:		m90e26Config.tBlank = psRule->para.u32[0][1] ;									break ;
 #endif
-	default:
-		iRV = erSCRIPT_INV_MODE ;
+	default:			iRV = erSCRIPT_INV_MODE ;
 	}
 	return iRV ;
 }
