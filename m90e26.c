@@ -28,15 +28,20 @@
  *
  */
 
-#include	"hal_config.h"
+#include	"x_config.h"
 
 #if		(ESP32_VARIANT == ESP32_VAR_EM1P2)
 
-#include	"endpoints.h"
+#include	"FreeRTOS_Support.h"
+#include	"m90e26.h"
+#include	"ssd1306.h"
+#include	"endpoint_id.h"
+
 #include	"rules_engine.h"
 #include	"x_errors_events.h"
 #include	"x_systiming.h"					// timing debugging
 #include	"x_syslog.h"
+#include	"x_printf.h"
 #include	"x_values_convert.h"
 #include	"x_string_to_values.h"
 
@@ -44,9 +49,6 @@
 #include	"hal_spi.h"
 #include	"hal_storage.h"
 #include	"hal_gpio.h"
-
-#include	"m90e26/m90e26.h"
-#include	"ssd1306/ssd1306.h"
 
 #include	<stdint.h>
 #include	<string.h>
