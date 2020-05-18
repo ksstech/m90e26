@@ -39,9 +39,9 @@
 
 #include	"rules_engine.h"
 #include	"x_errors_events.h"
-#include	"x_systiming.h"					// timing debugging
-#include	"x_syslog.h"
-#include	"x_printf.h"
+#include	"systiming.h"					// timing debugging
+#include	"syslog.h"
+#include	"printfx.h"
 #include	"x_values_convert.h"
 #include	"x_string_to_values.h"
 
