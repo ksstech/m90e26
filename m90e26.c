@@ -34,6 +34,7 @@
 
 #include	"FreeRTOS_Support.h"
 #include	"m90e26.h"
+#include	"m90e26_cmds.h"
 #include	"ssd1306.h"
 #include	"endpoint_id.h"
 
@@ -379,27 +380,28 @@ void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, 
  * @brief	M90C {eChan = 0->2} {regnum = 0->0x3B} {value}
  * @return
  */
-char *	CmndM90C(char * pCmdBuf) {
+int32_t CmndM90C(cli_t * psCLI) {
 	uint8_t		Chan, Reg ;
 	uint16_t	Value ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) M90E26_0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) M90E26_0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	// Allow all config registers
-	pTmp = pcStringParseValueRange(pCmdBuf = pTmp, (p32_t) &Reg, vfUXX, vs08B, sepSPACE, (x32_t) SOFTRESET, (x32_t) CRC_2) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Reg, vfUXX, vs08B, sepSPACE, (x32_t) SOFTRESET, (x32_t) CRC_2) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	// value to be written
-	pTmp = pcStringParseValueRange(pCmdBuf = pTmp, (p32_t) &Value, vfUXX, vs16B, sepSPACE, (x32_t) 0x0, (x32_t) 0xFFFF) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs16B, sepSPACE, (x32_t) 0x0, (x32_t) 0xFFFF) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	CmndM90_WriteChannels(Chan, Reg, Value) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
-char *	CmndM90D(char * pCmdBuf) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, halSTORAGE_KEY_M90E26) ; return NULL ; }
+int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, halSTORAGE_KEY_M90E26) ; return NULL ; }
 
 /**
  * CmndM90L() - set Live gain
@@ -407,19 +409,20 @@ char *	CmndM90D(char * pCmdBuf) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, ha
  * @return	NULL in successful
  * 			pointer to location in buffer where parsing error occurred.
  */
-char *	CmndM90L(char * pCmdBuf) {
+int32_t CmndM90L(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(pCmdBuf = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
 	do { m90e26SetLiveGain(eChan, Value) ; } while (++Cnow < eChan) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
 /**
@@ -428,24 +431,25 @@ exit:
  * @return	NULL in successful
  * 			pointer to location in buffer where parsing error occurred.
  */
-char *	CmndM90N(char * pCmdBuf) {
+int32_t CmndM90N(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(pCmdBuf = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
 	do { m90e26SetNeutralGain(eChan, Value) ; } while (++Cnow < eChan) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
-char *	CmndM90O(char * pCmdBuf) {
+int32_t CmndM90O(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
@@ -455,14 +459,15 @@ char *	CmndM90O(char * pCmdBuf) {
 		m90e26CurrentOffsetCalcSet(Cnow, I_RMS_N, I_GAIN_N, I_OFST_N) ;
 #endif
 	} while (++Cnow < eChan) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
-char *	CmndM90P(char * pCmdBuf) {
+int32_t CmndM90P(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t Cnow = eChan < M90E26_NUM ? eChan : 0 ;
@@ -474,9 +479,10 @@ char *	CmndM90P(char * pCmdBuf) {
 		m90e26PowerOffsetCalcSet(Cnow, P_REACT_N, Q_OFST_N) ;
 #endif
 	} while (++Cnow < eChan) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
 /**
@@ -485,12 +491,12 @@ exit:
  * @return	NULL in successful
  * 			pointer to location in buffer where parsing error occurred.
  */
-char *	CmndM90S(char * pCmdBuf) {
+int32_t CmndM90S(cli_t * psCLI) {
 	uint8_t	Chan, Value ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (M90E26_NUM - 1)) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (M90E26_NUM - 1)) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(pCmdBuf = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (CALIB_NUM - 1)) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (CALIB_NUM - 1)) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
@@ -507,19 +513,21 @@ char *	CmndM90S(char * pCmdBuf) {
 	iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 	IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
 	free(psCalib) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
-char *	CmndM90Z(char * pCmdBuf) {
+int32_t CmndM90Z(cli_t * psCLI) {
 	uint8_t	Chan ;
-	char * pTmp = pcStringParseValueRange(pCmdBuf, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 	CmndM90_WriteChannels(Chan, SOFTRESET, CODE_RESET) ;
-	pCmdBuf = NULL ;
+	psCLI->pcParse = pTmp ;
+	return erSUCCESS ;
 exit:
-	return pCmdBuf ;
+	return erFAILURE ;
 }
 
 // ############################## identification & initialization ##################################
