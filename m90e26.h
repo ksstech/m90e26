@@ -24,6 +24,9 @@
 
 #pragma		once
 
+#include	"hal_config.h"								// halHAS_M90E26
+#include	"x_definitions.h"
+
 #include	<stdint.h>
 
 #ifdef __cplusplus
@@ -245,17 +248,12 @@ typedef union {
 	uint16_t	val ;
 } m90e26meter_mode_t;
 
- struct nvs_m90e26_s {
+typedef struct __attribute__((packed)) nvs_m90e26_s {
 	uint16_t	calreg[11] ;
 	uint16_t	adjreg[10] ;
 	uint16_t	cfgreg[3] ;
-} ;
-DUMB_STATIC_ASSERT(sizeof(struct nvs_m90e26_s) == 48) ;
-
-typedef	struct nvs_m90e26_s nvs_m90e26_t ;
-
-// See http://www.catb.org/esr/structure-packing/
-// Also http://c0x.coding-guidelines.com/6.7.2.1.html
+} nvs_m90e26_t ;
+DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48) ;
 
 // ####################################### Global variables ########################################
 

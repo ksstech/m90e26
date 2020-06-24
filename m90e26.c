@@ -20,12 +20,6 @@
 
 /*
  * m90e26.c
- * TODO:
- * 1.	Store all energy readings into NVS to improve accuracy
- * 2.	On boot check if sensor config value are same as default
- *		if so, assume hard reboot and initialise chip with our values
- *		if not, assume chip pre-initialised and handle existing energy values in registers to improve accuracy
- *
  */
 
 #include	"x_config.h"
@@ -51,7 +45,6 @@
 #include	"hal_storage.h"
 #include	"hal_gpio.h"
 
-#include	<stdint.h>
 #include	<string.h>
 
 #define	debugFLAG					0xC400
@@ -638,7 +631,7 @@ int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 		f32Val	/= m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0 ;
 		xEpSetValue(psEpWork, (x32_t) f32Val) ;
 		// Update running total in NVS memory
-		rtc_slow.Esum[psEpWork->eChan][psEpWork->idx] += f32Val ;
+		sRTCslow.Esum[psEpWork->eChan][psEpWork->idx] += f32Val ;
 	} else {											// else it is a value reset call
 		vCompVarResetValue(&psEpWork->Var) ;
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
@@ -824,7 +817,7 @@ void	m90e26ReportData(void) {
 		PRINT("%2d", eChan) ;
 		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
-				PRINT(" %7g", rtc_slow.Esum[eChan][i]) ;
+				PRINT(" %7g", sRTCslow.Esum[eChan][i]) ;
 			} else {
 				PRINT("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
 			}
