@@ -29,7 +29,9 @@
 #include	"FreeRTOS_Support.h"
 #include	"m90e26.h"
 #include	"m90e26_cmds.h"
-#include	"ssd1306.h"
+#if		(halHAS_SSD1306 > 0)
+	#include	"ssd1306.h"
+#endif
 #include	"endpoint_id.h"
 
 #include	"rules_engine.h"
@@ -82,7 +84,7 @@ spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 		.cs_ena_posttrans	= 0,
 		.clock_speed_hz		= 160000,
 		.input_delay_ns		= 0,
-		.spics_io_num		= GPIO_NUM_5,				// D8 = CS pin
+		.spics_io_num		= m90e26VSPI_CS1,
 		.flags				= 0,
 		.queue_size			= 16,
 		.pre_cb				= 0,						// no callback handler
@@ -100,7 +102,7 @@ spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 		.cs_ena_posttrans	= 0,
 		.clock_speed_hz		= 160000,
 		.input_delay_ns		= 0,
-		.spics_io_num		= GPIO_NUM_17,				// D3 = CS pin
+		.spics_io_num		= m90e26VSPI_CS2,
 		.flags				= 0,
 		.queue_size			= 16,
 		.pre_cb				= 0,						// no callback handler
@@ -389,12 +391,12 @@ int32_t CmndM90C(cli_t * psCLI) {
 
 	CmndM90_WriteChannels(Chan, Reg, Value) ;
 	psCLI->pcParse = pTmp ;
-	return erSUCCESS
+	return erSUCCESS ;
 exit:
 	return erFAILURE ;
 }
 
-int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, halSTORAGE_KEY_M90E26) ; return NULL ; }
+int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, halSTORAGE_KEY_M90E26) ; return erSUCCESS ; }
 
 /**
  * CmndM90L() - set Live gain
