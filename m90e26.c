@@ -24,7 +24,7 @@
 
 #include	"x_config.h"
 
-#if		(ESP32_VARIANT == ESP32_VAR_EM1P2)
+#if		(halHAS_M90E26 > 0)
 
 #include	"FreeRTOS_Support.h"
 #include	"m90e26.h"
@@ -72,9 +72,9 @@
 
 // ###################################### Private variables #######################################
 
-spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
+spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 #if		(halHAS_M90E26 > 0)
-	[M90E26_0] = {
+	[0] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
 		.dummy_bits			= 0,
@@ -92,7 +92,7 @@ spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 	},
 #endif
 #if		(halHAS_M90E26 > 1)
-	[M90E26_1] = {
+	[1] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
 		.dummy_bits			= 0,
@@ -111,8 +111,8 @@ spi_device_interface_config_t	m90e26_config[M90E26_NUM] = {
 #endif
 } ;
 
-spi_device_handle_t				m90e26_handle[M90E26_NUM] = { 0 } ;
-SemaphoreHandle_t				m90e26mutex[M90E26_NUM] = { 0 } ;
+spi_device_handle_t				m90e26_handle[halHAS_M90E26] = { 0 } ;
+SemaphoreHandle_t				m90e26mutex[halHAS_M90E26] = { 0 } ;
 
 struct {
 	uint8_t	tBlank ;									// # seconds to blank in between
@@ -127,7 +127,7 @@ struct {
 		uint8_t	Spare	: 3 ;
 		uint8_t	N_Gain	: 3 ;							// 1 -> 4
 		uint8_t	L_Gain	: 5 ;							// 1 -> 24
-	} Chan[M90E26_NUM] ;
+	} Chan[halHAS_M90E26] ;
 } m90e26Config = { 0 } ;
 
 const uint8_t	m90e26RegAddr[] = {
@@ -156,7 +156,7 @@ const uint8_t	m90e26RegAddr[] = {
  *		0x00B9, 0xC1F3, 0xD139, 0x0000, 0x0000, 0x0000, 0x08BD, 0x0000, 0x0AEC, 0x0000, 0x9422 },
  *		0xD464, 0x6E49, 0x7530, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
  */
-nvs_m90e26_t	nvsM90E26default[M90E26_NUM] = {
+nvs_m90e26_t	nvsM90E26default[halHAS_M90E26] = {
 #if		(halHAS_M90E26 > 0)
 	{ {	0x00B9, 0xC1F3, 0x0000, 0x0000, 0x0000, 0x0000, 0x08BD, 0x8100, 0x0AEC, 0x8100, 0x9422 },
 	  {	0x6C50, 0x7C2A, 0x7530, 0x0000, 0xF711, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
@@ -172,7 +172,7 @@ nvs_m90e26_t	nvsM90E26default[M90E26_NUM] = {
 // ############################### common support routines #########################################
 
 void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
-	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
+	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && address < 0x70 && m90e26_handle[eChan]) ;
 	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
@@ -187,7 +187,7 @@ void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
 }
 
 uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
-	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && address < 0x70 && m90e26_handle[eChan]) ;
+	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && address < 0x70 && m90e26_handle[eChan]) ;
 	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf)) ;
@@ -201,7 +201,7 @@ uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
 }
 
 void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
-	IF_myASSERT(debugPARAM, eChan < M90E26_NUM) ;
+	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	if (INRANGE(PLconstH, Reg, MET_MODE, uint8_t)) {
 		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
 			SL_DBG("CALSTART (x20) in wrong state, must be x5678") ;
@@ -267,7 +267,7 @@ uint32_t m90e26ReadU32(uint8_t eChan, uint8_t Reg) {
 int32_t m90e26ReadI32TC(uint8_t eChan, uint8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1 ; }
 
 int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
-	IF_myASSERT(debugPARAM, eChan < M90E26_NUM && Idx < CALIB_NUM) ;
+	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && Idx < CALIB_NUM) ;
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
@@ -290,7 +290,7 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 }
 
 void	CmndM90_WriteChannels(uint8_t eChan, uint8_t Reg, uint16_t Value) {
-	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
+	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
 	do { m90e26WriteRegister(eChan, Reg, Value); } while (++Cnow < eChan) ;
 }
 
@@ -303,7 +303,7 @@ uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
 		psEpWork->idx -= M90E26_NUMURI_0 ;
 		psEpWork->eChan++ ;
 	}
-	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < M90E26_NUM)) ;
+	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < halHAS_M90E26)) ;
 	return psEpWork->idx ;
 }
 
@@ -378,7 +378,7 @@ void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, 
 int32_t CmndM90C(cli_t * psCLI) {
 	uint8_t		Chan, Reg ;
 	uint16_t	Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) M90E26_0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	// Allow all config registers
@@ -406,13 +406,13 @@ int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, ha
  */
 int32_t CmndM90L(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
+	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
 	do { m90e26SetLiveGain(eChan, Value) ; } while (++Cnow < eChan) ;
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
@@ -428,13 +428,13 @@ exit:
  */
 int32_t CmndM90N(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
+	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
 	do { m90e26SetNeutralGain(eChan, Value) ; } while (++Cnow < eChan) ;
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
@@ -444,10 +444,10 @@ exit:
 
 int32_t CmndM90O(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < M90E26_NUM ? eChan : 0 ;
+	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
 	do {
 		m90e26CurrentOffsetCalcSet(Cnow, I_RMS_L, I_GAIN_L, I_OFST_L) ;
 #if		(m90e26NEUTRAL == 1)
@@ -462,10 +462,10 @@ exit:
 
 int32_t CmndM90P(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t Cnow = eChan < M90E26_NUM ? eChan : 0 ;
+	uint8_t Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
 	do {
 		m90e26PowerOffsetCalcSet(Cnow, P_ACT_L, P_OFST_L) ;
 		m90e26PowerOffsetCalcSet(Cnow, P_REACT_L, Q_OFST_L) ;
@@ -488,7 +488,7 @@ exit:
  */
 int32_t CmndM90S(cli_t * psCLI) {
 	uint8_t	Chan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (M90E26_NUM - 1)) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (halHAS_M90E26 - 1)) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (CALIB_NUM - 1)) ;
@@ -516,7 +516,7 @@ exit:
 
 int32_t CmndM90Z(cli_t * psCLI) {
 	uint8_t	Chan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) M90E26_NUM) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 	CmndM90_WriteChannels(Chan, SOFTRESET, CODE_RESET) ;
 	psCLI->pcParse = pTmp ;
@@ -744,14 +744,14 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	case eDISPLAY:
 	#if	(halHAS_M90E26 > 0)
 		if (psRule->para.u32[0][1] < eDM_MAXIMUM) {
-			m90e26Config.Chan[M90E26_0].Display = psRule->para.u32[0][1] ;
+			m90e26Config.Chan[0].Display = psRule->para.u32[0][1] ;
 		} else {
 			iRV = erSCRIPT_INV_PARA ;
 		}
 	#endif
 	#if	(halHAS_M90E26 > 1)
 		if (psRule->para.u32[0][2] < eDM_MAXIMUM) {
-			m90e26Config.Chan[M90E26_1].Display = psRule->para.u32[0][2] ;
+			m90e26Config.Chan[1].Display = psRule->para.u32[0][2] ;
 		} else {
 			iRV = erSCRIPT_INV_PARA ;
 		}
@@ -914,7 +914,7 @@ void	m90e26Display(void) {
 #if		(halHAS_M90E26 == 1)
 	psEpWork = &table_work[URI_M90E26_E_ACT_FWD_0] ;
 #elif	(halHAS_M90E26 == 2)
-	psEpWork = &table_work[eChan == M90E26_0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
+	psEpWork = &table_work[eChan == 0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
 #endif
 	double dValue ;
 	xCompVarGetValue(&psEpWork[eI_RMS_L].Var, &dValue) ;

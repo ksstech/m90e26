@@ -122,16 +122,6 @@ extern "C" {
 
 // ######################################## Enumerations ###########################################
 
-enum {													// eChan available
-#if		(halHAS_M90E26 > 0)
-	M90E26_0,
-#endif
-#if		(halHAS_M90E26 > 1)
-	M90E26_1,
-#endif
-	M90E26_NUM,
-} ;
-
 enum {													// configuration registers
 	eCALSTART,
 	ePLconstH,
