@@ -22,7 +22,7 @@
  * m90e26.c
  */
 
-#include	"x_config.h"
+#include	"hal_config.h"
 
 #if		(halHAS_M90E26 > 0)
 
@@ -46,6 +46,7 @@
 #include	"hal_spi.h"
 #include	"hal_storage.h"
 #include	"hal_gpio.h"
+#include	"hal_nvs.h"
 
 #include	<string.h>
 
@@ -634,7 +635,7 @@ int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 		f32Val	/= m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0 ;
 		xEpSetValue(psEpWork, (x32_t) f32Val) ;
 		// Update running total in NVS memory
-		sNVmem.Esum[psEpWork->eChan][psEpWork->idx] += f32Val ;
+		sRTCvars.aRTCsum[psEpWork->eChan][psEpWork->idx] += f32Val ;
 	} else {											// else it is a value reset call
 		vCompVarResetValue(&psEpWork->Var) ;
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
@@ -820,7 +821,7 @@ void	m90e26ReportData(void) {
 		PRINT("%2d", eChan) ;
 		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
-				PRINT(" %7g", sNVmem.Esum[eChan][i]) ;
+				PRINT(" %7g", sRTCvars.aRTCsum[eChan][i]) ;
 			} else {
 				PRINT("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
 			}
