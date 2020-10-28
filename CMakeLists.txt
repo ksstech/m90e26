@@ -3,5 +3,5 @@ idf_component_register(
 	INCLUDE_DIRS "."
 	PRIV_INCLUDE_DIRS
 	REQUIRES
-	PRIV_REQUIRES endpoints hal_esp32 printf rules ssd1306 syslog systiming stringsX values  
+	PRIV_REQUIRES endpoints hal_esp32 printfx rules ssd1306 syslog systiming stringsX values  
 )
