@@ -267,14 +267,14 @@ uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
 
 struct	ep_work_s ;
-int32_t	m90e26ReadCurrent(struct ep_work_s * pEpWork) ;
-int32_t	m90e26ReadVoltage(struct ep_work_s * pEpWork) ;
-int32_t	m90e26ReadPower(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadCurrent(struct ep_work_s *) ;
+int32_t	m90e26ReadVoltage(struct ep_work_s *) ;
+int32_t	m90e26ReadPower(struct ep_work_s *) ;
 
-int32_t	m90e26ReadEnergy(struct ep_work_s * pEpWork) ;
-int32_t	m90e26ReadFrequency(struct ep_work_s * pEpWork) ;
-int32_t	m90e26ReadPowerFactor(struct ep_work_s * pEpWork) ;
-int32_t	m90e26ReadPowerAngle(struct ep_work_s * pEpWork) ;
+int32_t	m90e26ReadEnergy(struct ep_work_s *) ;
+int32_t	m90e26ReadFrequency(struct ep_work_s *) ;
+int32_t	m90e26ReadPowerFactor(struct ep_work_s *) ;
+int32_t	m90e26ReadPowerAngle(struct ep_work_s *) ;
 
 struct rule_s ;
 int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
