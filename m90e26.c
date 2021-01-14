@@ -788,7 +788,7 @@ static const uint8_t m90e26DataReg[] = {
 } ;
 
 void	m90e26ReportCalib(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_CALIB HDR_MMODE, attrRESET) ;
+	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_CALIB HDR_MMODE, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		PRINT("%2d", eChan) ;
 		for (int32_t i = CALSTART; i <= CRC_1; PRINT("  0x%04X", m90e26ReadU16(eChan, i++))) ;
@@ -807,7 +807,7 @@ void	m90e26ReportCalib(void) {
 }
 
 void	m90e26ReportAdjust(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_ADJUST, attrRESET) ;
+	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		PRINT("%2d", eChan) ;
 		for (int32_t i = ADJSTART; i <= CRC_2; PRINT("  0x%04X", m90e26ReadU16(eChan, i++))) ;
@@ -816,7 +816,7 @@ void	m90e26ReportAdjust(void) {
 }
 
 void	m90e26ReportData(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_DATA_LIVE HDR_DATA_NEUT, attrRESET) ;
+	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_DATA_LIVE HDR_DATA_NEUT, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		PRINT("%2d", eChan) ;
 		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
@@ -831,7 +831,7 @@ void	m90e26ReportData(void) {
 }
 
 void	m90e26ReportStatus(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_STATUS, attrRESET) ;
+	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
 		PRINT("%2d  0x%04X", eChan, SysStatus.val) ;
