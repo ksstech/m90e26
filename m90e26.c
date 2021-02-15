@@ -206,7 +206,7 @@ void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	if (INRANGE(PLconstH, Reg, MET_MODE, uint8_t)) {
 		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
-			SL_DBG("CALSTART (x20) in wrong state, must be x5678") ;
+			SL_INFO("CALSTART (x20) in wrong state, must be x5678") ;
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_1, m90e26ReadU16(eChan, CRC_1)) ;
@@ -216,7 +216,7 @@ void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N, uint8_t)) {
 		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
-			SL_DBG("ADJSTART (x30) in wrong state, must be x5678") ;
+			SL_INFO("ADJSTART (x30) in wrong state, must be x5678") ;
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_2, m90e26ReadU16(eChan, CRC_2)) ;
