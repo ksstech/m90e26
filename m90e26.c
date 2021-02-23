@@ -42,7 +42,6 @@
 #include	"x_values_convert.h"
 #include	"x_string_to_values.h"
 
-#include	"hal_debug.h"
 #include	"hal_spi.h"
 #include	"hal_storage.h"
 #include	"hal_gpio.h"
