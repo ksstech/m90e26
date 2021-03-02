@@ -45,7 +45,7 @@
 #include	"hal_spi.h"
 #include	"hal_storage.h"
 #include	"hal_gpio.h"
-#include	"hal_nvs.h"
+#include	"hal_variables.h"
 
 #include	<string.h>
 
