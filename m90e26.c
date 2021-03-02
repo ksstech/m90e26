@@ -787,13 +787,13 @@ static const uint8_t m90e26DataReg[] = {
 } ;
 
 void	m90e26ReportCalib(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_CALIB HDR_MMODE, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_CALIB HDR_MMODE, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		PRINT("%2d", eChan) ;
-		for (int32_t i = CALSTART; i <= CRC_1; PRINT("  0x%04X", m90e26ReadU16(eChan, i++))) ;
+		printfx("%2d", eChan) ;
+		for (int32_t i = CALSTART; i <= CRC_1; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
 		m90e26meter_mode_t	MeterMode = (m90e26meter_mode_t) m90e26ReadU16(eChan, MET_MODE) ;
 		uint8_t	Pthres[16] = { 200, 100, 50, 25, 16, 32, 48, 64,80, 96, 112, 128, 144, 160, 176, 192 } ;
-		PRINT("  %-2s  %2s %7s %7s %7s %7s  %6s %2.4f\n",
+		printfx("  %-2s  %2s %7s %7s %7s %7s  %6s %2.4f\n",
 			MeterMode.Lgain == 3 ? "24" : MeterMode.Lgain == 2 ? "16" : MeterMode.Lgain == 1 ? "8" : MeterMode.Lgain == 0 ? "4" : "1",
 			MeterMode.Ngain == 0 ? "2" : MeterMode.Ngain == 1 ? "4" : "1",
 			MeterMode.LNSel ? "Live" : "Neutral",
@@ -806,51 +806,51 @@ void	m90e26ReportCalib(void) {
 }
 
 void	m90e26ReportAdjust(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		PRINT("%2d", eChan) ;
-		for (int32_t i = ADJSTART; i <= CRC_2; PRINT("  0x%04X", m90e26ReadU16(eChan, i++))) ;
-		PRINT("\n") ;
+		printfx("%2d", eChan) ;
+		for (int32_t i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
+		printfx("\n") ;
 	}
 }
 
 void	m90e26ReportData(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_DATA_LIVE HDR_DATA_NEUT, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		PRINT("%2d", eChan) ;
+		printfx("%2d", eChan) ;
 		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
-				PRINT(" %7g", sRTCvars.aRTCsum[eChan][i]) ;
+				printfx(" %7g", sRTCvars.aRTCsum[eChan][i]) ;
 			} else {
-				PRINT("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
+				printfx("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
 			}
 		}
-		PRINT("\n") ;
+		printfx("\n") ;
 	}
 }
 
 void	m90e26ReportStatus(void) {
-	PRINT("%C%s%C\n", xpfSGR(attrRESET, colourFG_CYAN,0,0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
-		PRINT("%2d  0x%04X", eChan, SysStatus.val) ;
-		PRINT(SysStatus.CalErr		? "  Error "	: BLANK8) ;
-		PRINT(SysStatus.AdjErr		? "  Error "	: BLANK8) ;
-		PRINT(SysStatus.LnChge		? " L/N chg"	: BLANK8) ;
-		PRINT(SysStatus.RevQchg		? " DIR chg"	: BLANK8) ;
-		PRINT(SysStatus.RevPchg		? " DIR chg"	: BLANK8) ;
-		PRINT(SysStatus.SagWarn		? "  V sag "	: BLANK8) ;
+		printfx("%2d  0x%04X", eChan, SysStatus.val) ;
+		printfx(SysStatus.CalErr		? "  Error "	: BLANK8) ;
+		printfx(SysStatus.AdjErr		? "  Error "	: BLANK8) ;
+		printfx(SysStatus.LnChge		? " L/N chg"	: BLANK8) ;
+		printfx(SysStatus.RevQchg		? " DIR chg"	: BLANK8) ;
+		printfx(SysStatus.RevPchg		? " DIR chg"	: BLANK8) ;
+		printfx(SysStatus.SagWarn		? "  V sag "	: BLANK8) ;
 		m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eChan) ;
-		PRINT("  0x%04X", MeterStatus.val) ;
-		PRINT(MeterStatus.Qnoload	? " NO Load"	: BLANK8) ;
-		PRINT(MeterStatus.Pnoload	? " NO Load"	: BLANK8) ;
-		PRINT(MeterStatus.RevQ		? " Reverse"	: BLANK8) ;
-		PRINT(MeterStatus.RevP		? " Reverse"	: BLANK8) ;
-		PRINT(MeterStatus.Line 		? "    Live"	: " Neutral") ;
-		PRINT(MeterStatus.LNMode==3 ? "    Flex"	:
+		printfx("  0x%04X", MeterStatus.val) ;
+		printfx(MeterStatus.Qnoload	? " NO Load"	: BLANK8) ;
+		printfx(MeterStatus.Pnoload	? " NO Load"	: BLANK8) ;
+		printfx(MeterStatus.RevQ		? " Reverse"	: BLANK8) ;
+		printfx(MeterStatus.RevP		? " Reverse"	: BLANK8) ;
+		printfx(MeterStatus.Line 		? "    Live"	: " Neutral") ;
+		printfx(MeterStatus.LNMode==3 ? "    Flex"	:
 			  MeterStatus.LNMode==2 ? "    Both"	:
 			  MeterStatus.LNMode==1 ? "    Live"	: "  Tamper") ;
-		PRINT("\n") ;
+		printfx("\n") ;
 	}
 }
 
