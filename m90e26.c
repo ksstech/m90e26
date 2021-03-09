@@ -663,8 +663,13 @@ int32_t	m90e26ReadPowerAngle(ep_work_t * psEpWork) {
 	return erSUCCESS ;
 }
 
-inline uint16_t m90e26GetSysStatus(uint8_t eChan)	{ return m90e26ReadU16(eChan, SYS_STATUS) ; }
-inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26ReadU16(eChan, MET_STATUS) ; }
+inline uint16_t m90e26GetSysStatus(uint8_t eChan) {
+	return m90e26ReadU16(eChan, SYS_STATUS) ;
+}
+
+inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{
+	return m90e26ReadU16(eChan, MET_STATUS) ;
+}
 
 int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
 	uint16_t	NewValue ;
@@ -674,7 +679,9 @@ int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
 	case 8:		NewValue	= 0x2000 ;		m90e26Config.Chan[eChan].L_Gain	= 8 ;	break ;
 	case 16:	NewValue	= 0x4000 ;		m90e26Config.Chan[eChan].L_Gain	= 16 ;	break ;
 	case 24:	NewValue	= 0x6000 ;		m90e26Config.Chan[eChan].L_Gain	= 24 ;	break ;
-	default:	IF_SL_ERR(debugPARAM, "Invalid Live Gain =%d", Gain) ;			return erSCRIPT_INV_PARA ;
+	default:
+		IF_SL_ERR(debugPARAM, "Invalid Live Gain =%d", Gain) ;
+		return erSCRIPT_INV_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0xE000) ;
 	return erSUCCESS ;
@@ -686,7 +693,9 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 	case 1:		NewValue	= 0x1000 ;		m90e26Config.Chan[eChan].N_Gain = 1 ;	break ;
 	case 2:		NewValue	= 0x0000 ;		m90e26Config.Chan[eChan].N_Gain = 2 ;	break ;
 	case 4:		NewValue	= 0x0800 ;		m90e26Config.Chan[eChan].N_Gain = 4 ;	break ;
-	default:	IF_SL_ERR(debugPARAM, "Invalid Neutral Gain =%d", Gain) ;		return erSCRIPT_INV_PARA ;
+	default:
+		IF_SL_ERR(debugPARAM, "Invalid Neutral Gain =%d", Gain) ;
+		return erSCRIPT_INV_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0x1800) ;
 	return erSUCCESS ;
@@ -722,15 +731,23 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	IF_PRINT(debugMODE, "m90e26 Mode  p0=%d  p1=%d  p2=%d\n", psRule->para.u32[0][0], psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
 	int32_t iRV = erSUCCESS ;
 	switch (psRule->para.u32[0][0]) {
-	case eL_GAIN:		iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;		break ;
+	case eL_GAIN:
+		iRV = m90e26SetLiveGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
+		break ;
 
 #if		(m90e26NEUTRAL == 1)		// NEUTRAL Line wrapper functions
-	case eN_GAIN:		iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;	break ;
+	case eN_GAIN:
+		iRV = m90e26SetNeutralGain(psRule->para.u32[0][1], psRule->para.u32[0][2]) ;
+		break ;
 #endif
 
-	case eSOFTRESET:	iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;									break ;
+	case eSOFTRESET:
+		iRV = m90e26SoftReset(psRule->para.u32[0][1]) ;
+		break ;
 
-	case eRECALIB:		iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;								break ;
+	case eRECALIB:
+		iRV = m90e26Recalibrate(psRule->para.u32[0][1]) ;
+		break ;
 
 #if		(halHAS_SSD1306 > 0)
 	case eBRIGHT:
@@ -759,7 +776,9 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 	#endif
 		break ;
 
-	case eBLANKING:		m90e26Config.tBlank = psRule->para.u32[0][1] ;									break ;
+	case eBLANKING:
+		m90e26Config.tBlank = psRule->para.u32[0][1] ;
+		break ;
 #endif
 	default:			iRV = erSCRIPT_INV_MODE ;
 	}
