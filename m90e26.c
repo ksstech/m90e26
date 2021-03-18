@@ -295,7 +295,7 @@ void	CmndM90_WriteChannels(uint8_t eChan, uint8_t Reg, uint16_t Value) {
 	do { m90e26WriteRegister(eChan, Reg, Value); } while (++Cnow < eChan) ;
 }
 
-uint8_t	m90e26CalcInfo(ep_work_t * psEpWork) {
+uint8_t	m90e26CalcInfo(epw_t * psEpWork) {
 	xEpWorkToUri(psEpWork) ;
 	psEpWork->idx = psEpWork->uri - URI_M90E26_E_ACT_FWD_0 ;
 	psEpWork->eChan = 0 ;
@@ -379,15 +379,15 @@ void	m90e26CurrentOffsetCalcSet(uint8_t eChan, uint8_t RegRMS, uint8_t RegGAIN, 
 int32_t CmndM90C(cli_t * psCLI) {
 	uint8_t		Chan, Reg ;
 	uint16_t	Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	// Allow all config registers
-	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Reg, vfUXX, vs08B, sepSPACE, (x32_t) SOFTRESET, (x32_t) CRC_2) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Reg, vfUXX, vs08B, sepSPACE, (x32_t) SOFTRESET, (x32_t) CRC_2) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	// value to be written
-	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs16B, sepSPACE, (x32_t) 0x0, (x32_t) 0xFFFF) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs16B, sepSPACE, (x32_t) 0x0, (x32_t) 0xFFFF) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	CmndM90_WriteChannels(Chan, Reg, Value) ;
@@ -407,10 +407,10 @@ int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, ha
  */
 int32_t CmndM90L(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
@@ -429,10 +429,10 @@ exit:
  */
 int32_t CmndM90N(cli_t * psCLI) {
 	uint8_t	eChan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
@@ -445,7 +445,7 @@ exit:
 
 int32_t CmndM90O(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
@@ -463,7 +463,7 @@ exit:
 
 int32_t CmndM90P(cli_t * psCLI) {
 	uint8_t	eChan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	uint8_t Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
@@ -489,10 +489,10 @@ exit:
  */
 int32_t CmndM90S(cli_t * psCLI) {
 	uint8_t	Chan, Value ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (halHAS_M90E26 - 1)) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (halHAS_M90E26 - 1)) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (p32_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (CALIB_NUM - 1)) ;
+	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) (CALIB_NUM - 1)) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
@@ -517,7 +517,7 @@ exit:
 
 int32_t CmndM90Z(cli_t * psCLI) {
 	uint8_t	Chan ;
-	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (p32_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
+	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &Chan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 	CmndM90_WriteChannels(Chan, SOFTRESET, CODE_RESET) ;
 	psCLI->pcParse = pTmp ;
@@ -570,7 +570,7 @@ int32_t	m90e26Init(uint8_t eChan) {
 
 // ########################### 32 bit value endpoint support functions #############################
 
-int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
+int32_t	m90e26ReadCurrent(epw_t * psEpWork) {
 	uint8_t	eIdx = m90e26CalcInfo(psEpWork) ;
 	float	f32Val	= (float) m90e26ReadU32(psEpWork->eChan, m90e26RegAddr[eIdx]) ;
 	IF_PRINT(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEpWork->uri, eIdx, m90e26RegAddr[eIdx], psEpWork->eChan) ;
@@ -603,7 +603,7 @@ int32_t	m90e26ReadCurrent(ep_work_t * psEpWork) {
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadVoltage(ep_work_t * psEpWork) {		// OK
+int32_t	m90e26ReadVoltage(epw_t * psEpWork) {		// OK
 	m90e26CalcInfo(psEpWork) ;
 	float	f32Val	= (float) m90e26ReadU32(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 	f32Val			/= 6553600.0 ;						// Change mV to V
@@ -612,7 +612,7 @@ int32_t	m90e26ReadVoltage(ep_work_t * psEpWork) {		// OK
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPower(ep_work_t * psEpWork) {
+int32_t	m90e26ReadPower(epw_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
 	float	f32Val	= (float) m90e26ReadI32TC(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 	if (m90e26Config.Chan[psEpWork->eChan].P_Scale == 1) {
@@ -627,7 +627,7 @@ int32_t	m90e26ReadPower(ep_work_t * psEpWork) {
 
 // ########################### 16 bit value endpoint support functions #############################
 
-int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
+int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
 	if (psEpWork->Var.varDef.cv.sumX) {					// if just a normal update cycle
 		m90e26CalcInfo(psEpWork) ;
 		float f32Val	= (float) m90e26ReadU16(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
@@ -642,21 +642,21 @@ int32_t	m90e26ReadEnergy(ep_work_t * psEpWork) {
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadFrequency(ep_work_t * psEpWork) {
+int32_t	m90e26ReadFrequency(epw_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
 	float f32Val	= (float) m90e26ReadU16(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) / 100.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPowerFactor(ep_work_t * psEpWork) {
+int32_t	m90e26ReadPowerFactor(epw_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
 	float f32Val	= (float)  m90e26ReadI16S(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) / 1000.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-int32_t	m90e26ReadPowerAngle(ep_work_t * psEpWork) {
+int32_t	m90e26ReadPowerAngle(epw_t * psEpWork) {
 	m90e26CalcInfo(psEpWork) ;
 	float f32Val	= (float) m90e26ReadI16S(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) / 10.0 ;
 	xEpSetValue(psEpWork, (x32_t) f32Val) ;
@@ -887,7 +887,7 @@ void	m90e26Report(void) {
 static	uint8_t eChan = 0,
 				Index = 0 ;
 static	TickType_t	NextTick = 0 ;
-static	ep_work_t * psEpWork;
+static	epw_t * psEpWork;
 
 void	m90e26DisplayInfo(void) {
 	ssd1306SetDisplayState(1) ;

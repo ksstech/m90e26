@@ -266,18 +266,18 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) ;
 uint16_t m90e26GetSysStatus(uint8_t eChan) ;
 uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
 
-struct	ep_work_s ;
-int32_t	m90e26ReadCurrent(struct ep_work_s *) ;
-int32_t	m90e26ReadVoltage(struct ep_work_s *) ;
-int32_t	m90e26ReadPower(struct ep_work_s *) ;
+struct	epw_t ;
+int32_t	m90e26ReadCurrent(struct epw_t *) ;
+int32_t	m90e26ReadVoltage(struct epw_t *) ;
+int32_t	m90e26ReadPower(struct epw_t *) ;
 
-int32_t	m90e26ReadEnergy(struct ep_work_s *) ;
-int32_t	m90e26ReadFrequency(struct ep_work_s *) ;
-int32_t	m90e26ReadPowerFactor(struct ep_work_s *) ;
-int32_t	m90e26ReadPowerAngle(struct ep_work_s *) ;
+int32_t	m90e26ReadEnergy(struct epw_t *) ;
+int32_t	m90e26ReadFrequency(struct epw_t *) ;
+int32_t	m90e26ReadPowerFactor(struct epw_t *) ;
+int32_t	m90e26ReadPowerAngle(struct epw_t *) ;
 
-struct rule_s ;
-int32_t	m90e26ConfigMode(struct rule_s * psRule) ;
+struct rule_t ;
+int32_t	m90e26ConfigMode(struct rule_t * psRule) ;
 
 void	m90e26Report(void) ;
 void	m90e26Display(void) ;
