@@ -71,6 +71,30 @@
 #define	debugPARAM					(debugFLAG_GLOBAL & debugFLAG & 0x4000)
 #define	debugRESULT					(debugFLAG_GLOBAL & debugFLAG & 0x8000)
 
+#if		(halHAS_M90E26 > 0)
+	#if		(M90E26_NEUTRAL == 1)
+		#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#else
+		#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_L_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#endif
+
+	#if	(halHAS_M90E26 > 1)
+		#if		(M90E26_NEUTRAL == 1)
+			#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
+		#else
+			#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_L_1 - URI_M90E26_E_ACT_FWD_1 + 1)
+		#endif
+
+		#if		(M90E26_NUMURI_0 != M90E26_NUMURI_1)
+			#error	"error in m90e26 URI definitions!!!"
+		#endif
+	#endif
+#else
+	#define	URI_M90E26_E_ACT_FWD_0
+	#define	URI_M90E26_E_ACT_FWD_1
+	#define	M90E26_NUMURI_0
+#endif
+
 // ###################################### Private variables #######################################
 
 spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
