@@ -193,7 +193,7 @@ nvs_m90e26_t	nvsM90E26default[halHAS_M90E26] = {
 // ############################### common support routines #########################################
 
 void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && address < 0x70 && m90e26_handle[eChan]) ;
+	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eChan]) ;
 	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
@@ -208,7 +208,7 @@ void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
 }
 
 uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && address < 0x70 && m90e26_handle[eChan]) ;
+	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eChan]) ;
 	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf)) ;
@@ -222,7 +222,6 @@ uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
 }
 
 void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
 	if (INRANGE(PLconstH, Reg, MET_MODE, uint8_t)) {
 		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
 			SL_INFO("CALSTART (x20) in wrong state, must be x5678") ;
@@ -288,7 +287,7 @@ uint32_t m90e26ReadU32(uint8_t eChan, uint8_t Reg) {
 int32_t m90e26ReadI32TC(uint8_t eChan, uint8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1 ; }
 
 int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26 && Idx < CALIB_NUM) ;
+	IF_myASSERT(debugPARAM, Idx < CALIB_NUM) ;
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
@@ -688,7 +687,7 @@ int32_t	m90e26ReadPower(epw_t * psEpWork) {
 
 int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
 #if		(halHAS_M90E26 > 0)
-	if (psEpWork->Var.varDef.cv.sumX) {					// if just a normal update cycle
+	if (psEpWork->Var.def.cv.sumX) {					// if just a normal update cycle
 		m90e26CalcInfo(psEpWork) ;
 		float f32Val	= (float) m90e26ReadU16(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 		f32Val	/= m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0 ;
