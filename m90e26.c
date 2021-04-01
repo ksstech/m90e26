@@ -687,7 +687,7 @@ int32_t	m90e26ReadPower(epw_t * psEpWork) {
 
 int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
 #if		(halHAS_M90E26 > 0)
-	if (psEpWork->Var.def.cv.sumX) {					// if just a normal update cycle
+	if (psEpWork->var.def.cv.sumX) {					// if just a normal update cycle
 		m90e26CalcInfo(psEpWork) ;
 		float f32Val	= (float) m90e26ReadU16(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
 		f32Val	/= m90e26Config.Chan[psEpWork->eChan].E_Scale ? 10000.0 : 10.0 ;
@@ -695,7 +695,7 @@ int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
 		// Update running total in NVS memory
 		sRTCvars.aRTCsum[psEpWork->eChan][psEpWork->idx] += f32Val ;
 	} else {											// else it is a value reset call
-		vCV_ResetValue(&psEpWork->Var) ;
+		vCV_ResetValue(&psEpWork->var) ;
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
 	}
 	return erSUCCESS ;
@@ -969,20 +969,20 @@ void	m90e26DisplayInfo(void) {
 	ssd1306SetTextCursor(0, 0) ;
 	if ((Index % 2) == 0) {
 		devprintfx(ssd1306PutChar, "Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
-		xCV_GetValue(&psEpWork[eVOLTS].Var, NULL),
-		xCV_GetValue(&psEpWork[eFREQ].Var, NULL),
-		xCV_GetValue(&psEpWork[eI_RMS_L].Var, NULL),
-		xCV_GetValue(&psEpWork[eP_ACT_L].Var, NULL),
-		xCV_GetValue(&psEpWork[eP_ANGLE_L].Var, NULL),
-		xCV_GetValue(&psEpWork[eP_FACTOR_L].Var, NULL)) ;
+		xCV_GetValue(&psEpWork[eVOLTS].var, NULL),
+		xCV_GetValue(&psEpWork[eFREQ].var, NULL),
+		xCV_GetValue(&psEpWork[eI_RMS_L].var, NULL),
+		xCV_GetValue(&psEpWork[eP_ACT_L].var, NULL),
+		xCV_GetValue(&psEpWork[eP_ANGLE_L].var, NULL),
+		xCV_GetValue(&psEpWork[eP_FACTOR_L].var, NULL)) ;
 	} else {
 		devprintfx(ssd1306PutChar, "Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
-		xCV_GetValue(&psEpWork[eE_ACT_FWD].Var, NULL),
-		xCV_GetValue(&psEpWork[eE_ACT_REV].Var, NULL),
-		xCV_GetValue(&psEpWork[eE_ACT_ABS].Var, NULL),
-		xCV_GetValue(&psEpWork[eE_REACT_FWD].Var, NULL),
-		xCV_GetValue(&psEpWork[eE_REACT_REV].Var, NULL),
-		xCV_GetValue(&psEpWork[eE_REACT_ABS].Var, NULL)) ;
+		xCV_GetValue(&psEpWork[eE_ACT_FWD].var, NULL),
+		xCV_GetValue(&psEpWork[eE_ACT_REV].var, NULL),
+		xCV_GetValue(&psEpWork[eE_ACT_ABS].var, NULL),
+		xCV_GetValue(&psEpWork[eE_REACT_FWD].var, NULL),
+		xCV_GetValue(&psEpWork[eE_REACT_REV].var, NULL),
+		xCV_GetValue(&psEpWork[eE_REACT_ABS].var, NULL)) ;
 	}
 }
 
@@ -1015,7 +1015,7 @@ void	m90e26Display(void) {
 	psEpWork = &table_work[eChan == 0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
 #endif
 	double dValue ;
-	xCV_GetValue(&psEpWork[eI_RMS_L].Var, &dValue) ;
+	xCV_GetValue(&psEpWork[eI_RMS_L].var, &dValue) ;
 	if ((m90e26Config.NowContrast > 0) &&
 		(m90e26Config.Chan[eChan].Display == eDM_NORMAL ||
 		(m90e26Config.Chan[eChan].Display == eDM_CURRENT && dValue != 0.0) ) ) {
