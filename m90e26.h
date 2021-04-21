@@ -195,6 +195,7 @@ typedef struct conf_reg_s {
  	uint8_t		flag ;
  	uint16_t	raw_val ;
 } conf_reg_t ;
+DUMB_STATIC_ASSERT(sizeof(conf_reg_t) == 4) ;
 
 typedef union {
 	struct {
@@ -209,7 +210,8 @@ typedef union {
 		uint8_t		CalErr	: 2 ;			// MSB
 	} ;
 	uint16_t	val ;
-} m90e36system_stat_t ;
+} m90e26system_stat_t ;
+DUMB_STATIC_ASSERT(sizeof(m90e26system_stat_t) == 2) ;
 
 typedef union {
 	struct {
@@ -220,9 +222,10 @@ typedef union {
 		uint8_t		RevQ	: 1 ;
 		uint8_t		Pnoload	: 1 ;
 		uint8_t		Qnoload	: 1 ;			// MSB
-};
+	} ;
 	uint16_t	val ;
 } m90e26meter_stat_t ;
+DUMB_STATIC_ASSERT(sizeof(m90e26meter_stat_t) == 2) ;
 
 typedef union {
 	struct {
@@ -237,8 +240,9 @@ typedef union {
 	} ;
 	uint16_t	val ;
 } m90e26meter_mode_t;
+DUMB_STATIC_ASSERT(sizeof(m90e26meter_mode_t) == 2) ;
 
-typedef struct __attribute__((packed)) nvs_m90e26_s {
+typedef struct __attribute__((packed)) nvs_m90e26_t {
 	uint16_t	calreg[11] ;
 	uint16_t	adjreg[10] ;
 	uint16_t	cfgreg[3] ;

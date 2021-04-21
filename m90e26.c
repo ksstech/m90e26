@@ -1,28 +1,8 @@
 /*
- * Copyright 2018-20 AM Maree/KSS Technologies (Pty) Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * Copyright 2018-21 Andre M. Maree/KSS Technologies (Pty) Ltd.
  */
 
-/*
- * m90e26.c
- */
-
-#include	"hal_config.h"
+#include	"hal_variables.h"
 
 #include	"FreeRTOS_Support.h"
 #include	"m90e26.h"
@@ -67,28 +47,15 @@
 #define	debugPARAM					(debugFLAG_GLOBAL & debugFLAG & 0x4000)
 #define	debugRESULT					(debugFLAG_GLOBAL & debugFLAG & 0x8000)
 
-#if		(halHAS_M90E26 > 0)
-	#if		(M90E26_NEUTRAL == 1)
-		#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
-	#else
-		#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_L_0 - URI_M90E26_E_ACT_FWD_0 + 1)
-	#endif
-
-	#if	(halHAS_M90E26 > 1)
-		#if		(M90E26_NEUTRAL == 1)
-			#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
-		#else
-			#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_L_1 - URI_M90E26_E_ACT_FWD_1 + 1)
-		#endif
-
-		#if		(M90E26_NUMURI_0 != M90E26_NUMURI_1)
-			#error	"error in m90e26 URI definitions!!!"
-		#endif
-	#endif
+#if		(M90E26_NEUTRAL == 1)
+	#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
 #else
-	#define	URI_M90E26_E_ACT_FWD_0
-	#define	URI_M90E26_E_ACT_FWD_1
-	#define	M90E26_NUMURI_0
+	#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_L_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_L_1 - URI_M90E26_E_ACT_FWD_1 + 1)
+#endif
+#if		(M90E26_NUMURI_0 != M90E26_NUMURI_1)
+	#error	"error in m90e26 URI definitions!!!"
 #endif
 
 // ###################################### Private variables #######################################
@@ -310,16 +277,11 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 }
 
 void	CmndM90_WriteChannels(uint8_t eChan, uint8_t Reg, uint16_t Value) {
-#if		(halHAS_M90E26 > 0)
-	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
+	uint8_t	Cnow = eChan < NumM90E26 ? eChan : 0 ;
 	do { m90e26WriteRegister(eChan, Reg, Value); } while (++Cnow < eChan) ;
-#else
-	myASSERT(0) ;
-#endif
 }
 
 uint8_t	m90e26CalcInfo(epw_t * psEpWork) {
-#if		(halHAS_M90E26 > 0)
 	xEpWorkToUri(psEpWork) ;
 	psEpWork->idx = psEpWork->uri - URI_M90E26_E_ACT_FWD_0 ;
 	psEpWork->eChan = 0 ;
@@ -330,10 +292,6 @@ uint8_t	m90e26CalcInfo(epw_t * psEpWork) {
 	}
 	IF_myASSERT(debugRESULT, (psEpWork->idx < M90E26_NUMURI_0) && (psEpWork->eChan < halHAS_M90E26)) ;
 	return psEpWork->idx ;
-#else
-	myASSERT(0) ;
-	return erFAILURE ;
-#endif
 }
 
 /* ######################################## Calibration ############################################
@@ -434,7 +392,6 @@ int32_t CmndM90D(cli_t * psCLI) { halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, ha
  * 			pointer to location in buffer where parsing error occurred.
  */
 int32_t CmndM90L(cli_t * psCLI) {
-#if		(halHAS_M90E26 > 0)
 	uint8_t	eChan, Value ;
 	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
@@ -442,16 +399,13 @@ int32_t CmndM90L(cli_t * psCLI) {
 	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 24) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
+	uint8_t	Cnow = eChan < NumM90E26 ? eChan : 0 ;
 	do {
 		m90e26SetLiveGain(eChan, Value) ;
 	} while (++Cnow < eChan) ;
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
 exit:
-#else
-	myASSERT(0) ;
-#endif
 	return erFAILURE ;
 }
 
@@ -462,7 +416,6 @@ exit:
  * 			pointer to location in buffer where parsing error occurred.
  */
 int32_t CmndM90N(cli_t * psCLI) {
-#if		(halHAS_M90E26 > 0)
 	uint8_t	eChan, Value ;
 	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
@@ -470,26 +423,22 @@ int32_t CmndM90N(cli_t * psCLI) {
 	pTmp = pcStringParseValueRange(psCLI->pcParse = pTmp, (px_t) &Value, vfUXX, vs08B, sepSPACE, (x32_t) 1, (x32_t) 4) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
+	uint8_t	Cnow = eChan < NumM90E26 ? eChan : 0 ;
 	do {
 		m90e26SetNeutralGain(eChan, Value) ;
 	} while (++Cnow < eChan) ;
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
 exit:
-#else
-	myASSERT(0) ;
-#endif
 	return erFAILURE ;
 }
 
 int32_t CmndM90O(cli_t * psCLI) {
-#if		(halHAS_M90E26 > 0)
 	uint8_t	eChan ;
 	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t	Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
+	uint8_t	Cnow = eChan < NumM90E26 ? eChan : 0 ;
 	do {
 		m90e26CurrentOffsetCalcSet(Cnow, I_RMS_L, I_GAIN_L, I_OFST_L) ;
 #if		(m90e26NEUTRAL == 1)
@@ -499,19 +448,15 @@ int32_t CmndM90O(cli_t * psCLI) {
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
 exit:
-#else
-	myASSERT(0) ;
-#endif
 	return erFAILURE ;
 }
 
 int32_t CmndM90P(cli_t * psCLI) {
-#if		(halHAS_M90E26 > 0)
 	uint8_t	eChan ;
 	char * pTmp = pcStringParseValueRange(psCLI->pcParse, (px_t) &eChan, vfUXX, vs08B, sepSPACE, (x32_t) 0, (x32_t) halHAS_M90E26) ;
 	EQ_GOTO(pTmp, pcFAILURE, exit) ;
 
-	uint8_t Cnow = eChan < halHAS_M90E26 ? eChan : 0 ;
+	uint8_t Cnow = eChan < NumM90E26 ? eChan : 0 ;
 	do {
 		m90e26PowerOffsetCalcSet(Cnow, P_ACT_L, P_OFST_L) ;
 		m90e26PowerOffsetCalcSet(Cnow, P_REACT_L, Q_OFST_L) ;
@@ -523,9 +468,6 @@ int32_t CmndM90P(cli_t * psCLI) {
 	psCLI->pcParse = pTmp ;
 	return erSUCCESS ;
 exit:
-#else
-	myASSERT(0) ;
-#endif
 	return erFAILURE ;
 }
 
@@ -577,24 +519,18 @@ exit:
 // ############################## identification & initialization ##################################
 
 int32_t	m90e26Identify(uint8_t eChan) {
-#if		(halHAS_M90E26 > 0)
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
+	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
 	m90e26mutex[eChan]	= xSemaphoreCreateMutex() ;
 	IF_myASSERT(debugRESULT, m90e26mutex[eChan]) ;
 	return erSUCCESS ;
-#else
-	myASSERT(0) ;
-	return erFAILURE ;
-#endif
 }
 
 /**
  * m90e26Init() -
  */
 int32_t	m90e26Init(uint8_t eChan) {
-#if		(halHAS_M90E26 > 0)
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
+	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
 	/* Check that blob with CALibration and ADJustment values exists
 	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
@@ -620,10 +556,6 @@ int32_t	m90e26Init(uint8_t eChan) {
 	m90e26Config.Chan[eChan].I_Scale	= 0 ;			// A not mA
 	m90e26Config.MaxContrast			= 255 ;
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
-#else
-	myASSERT(0) ;
-	return erFAILURE ;
-#endif
 }
 
 // ########################### 32 bit value endpoint support functions #############################
@@ -686,7 +618,6 @@ int32_t	m90e26ReadPower(epw_t * psEpWork) {
 // ########################### 16 bit value endpoint support functions #############################
 
 int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
-#if		(halHAS_M90E26 > 0)
 	if (psEpWork->var.def.cv.sumX) {					// if just a normal update cycle
 		m90e26CalcInfo(psEpWork) ;
 		float f32Val	= (float) m90e26ReadU16(psEpWork->eChan, m90e26RegAddr[psEpWork->idx]) ;
@@ -699,10 +630,6 @@ int32_t	m90e26ReadEnergy(epw_t * psEpWork) {
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
 	}
 	return erSUCCESS ;
-#else
-	myASSERT(0) ;
-#endif
-	return erFAILURE ;
 }
 
 int32_t	m90e26ReadFrequency(epw_t * psEpWork) {
@@ -765,14 +692,9 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 }
 
 int32_t m90e26SoftReset(uint8_t eChan) {
-#if		(halHAS_M90E26 > 0)
-	IF_myASSERT(debugPARAM, eChan < halHAS_M90E26) ;
+	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
 	m90e26WriteU16(eChan, SOFTRESET, CODE_RESET) ;
 	return erSUCCESS ;
-#else
-	myASSERT(0) ;
-	return erFAILURE ;
-#endif
 }
 
 int32_t m90e26Recalibrate(uint8_t eChan) {
@@ -866,9 +788,9 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 #define	HDR_ADJUST		"Ch ADJSTRT   Ugain  IgainL  IgainN   Vofst  IofstL  IofstN  PofstL  QofstL  PofstN  QofstN   CRC_2"
 #define	HDR_DATA_LIVE	"Ch  ActFwd  ActRev  ActAbs  ReaFwd  ReaRev  ReaAbs   IrmsL    Vrms   PactL PreactL Freq Hz  PfactL PangleL   PappL"
 #if		(m90e26NEUTRAL == 1)
-	#define	HDR_DATA_NEUT	  "   IrmsN   PactN PreactN  PfactN PangleN   PappN"
+#define	HDR_DATA_NEUT	"   IrmsN   PactN PreactN  PfactN PangleN   PappN"
 #else
-	#define	HDR_DATA_NEUT	  ""
+#define	HDR_DATA_NEUT	""
 #endif
 #define	HDR_STATUS		"Ch  System    CRC1    CRC2  L/N Ch RevQchg RevPchg SagWarn   Meter Qnoload Pnoload    RevQ    RevP  Tamper  L-Mode"
 #define	BLANK8			"        "
@@ -876,7 +798,7 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 
 void	m90e26ReportCalib(void) {
 	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_CALIB HDR_MMODE, xpfSGR(attrRESET, 0, 0, 0)) ;
-	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
+	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int32_t i = CALSTART; i <= CRC_1; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
 		m90e26meter_mode_t	MeterMode = (m90e26meter_mode_t) m90e26ReadU16(eChan, MET_MODE) ;
@@ -895,7 +817,7 @@ void	m90e26ReportCalib(void) {
 
 void	m90e26ReportAdjust(void) {
 	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
-	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
+	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int32_t i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
 		printfx("\n") ;
@@ -903,14 +825,13 @@ void	m90e26ReportAdjust(void) {
 }
 
 void	m90e26ReportData(void) {
-#if		(halHAS_M90E26 > 0)
 	const uint8_t m90e26DataReg[] = {
 		E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS,
 		I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
 		I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 	} ;
 	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), xpfSGR(attrRESET, 0, 0, 0)) ;
-	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
+	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
@@ -921,15 +842,12 @@ void	m90e26ReportData(void) {
 		}
 		printfx("\n") ;
 	}
-#else
-	myASSERT(0) ;
-#endif
 }
 
 void	m90e26ReportStatus(void) {
 	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
-	for (int32_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		m90e36system_stat_t SysStatus = (m90e36system_stat_t) m90e26GetSysStatus(eChan) ;
+	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
+		m90e26system_stat_t SysStatus = (m90e26system_stat_t) m90e26GetSysStatus(eChan) ;
 		printfx("%2d  0x%04X", eChan, SysStatus.val) ;
 		printfx(SysStatus.CalErr		? "  Error "	: BLANK8) ;
 		printfx(SysStatus.AdjErr		? "  Error "	: BLANK8) ;
@@ -987,7 +905,6 @@ void	m90e26DisplayInfo(void) {
 }
 
 void	m90e26Display(void) {
-#if		(halHAS_M90E26 > 0)
 	static	TickType_t	NextTick = 0 ;
 	static	uint8_t eChan = 0 ;
 	if (m90e26_handle[0] == 0) {
@@ -1008,11 +925,11 @@ void	m90e26Display(void) {
 #endif
 	//
 	NextTick = CurTick + m90e26STAT_INTVL ;
-	eChan = Index / halHAS_M90E26 ;
-#if		(halHAS_M90E26 == 1)
-	psEpWork = &table_work[URI_M90E26_E_ACT_FWD_0] ;
-#elif	(halHAS_M90E26 == 2)
+	eChan = Index / NumM90E26 ;
+#if	(halHAS_M90E26 == 2)
 	psEpWork = &table_work[eChan == 0 ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
+#else
+	psEpWork = &table_work[URI_M90E26_E_ACT_FWD_0] ;
 #endif
 	double dValue ;
 	xCV_GetValue(&psEpWork[eI_RMS_L].var, &dValue) ;
@@ -1025,7 +942,7 @@ void	m90e26Display(void) {
 	}
 	//
 	++Index ;
-	Index %= (halHAS_M90E26 * 2) ;
+	Index %= (NumM90E26 * 2) ;
 	if (Index == 0) {
 		m90e26Config.NowContrast += m90e26STEP_CONTRAST ;
 		if (m90e26Config.NowContrast > m90e26Config.MaxContrast) {
@@ -1034,9 +951,6 @@ void	m90e26Display(void) {
 		ssd1306SetContrast(m90e26Config.NowContrast) ;
 		IF_PRINT(debugCONTRAST, "Contrast = %d\n", m90e26Config.NowContrast) ;
 	}
-#else
-	myASSERT(0) ;
-#endif
 }
 
 /* ################################### OLD CODE #####################################
@@ -1059,7 +973,7 @@ uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
 }
 
 void	m90e26HandleCRC(uint8_t eChan, uint8_t RegAddr1, uint8_t RegAddr2) {
-	IF_myASSERT(debugPARAM, eChan<halHAS_M90E26 && ((RegAddr1==CALSTART && RegAddr2==CRC_1) || (RegAddr1==ADJSTART && RegAddr2==CRC_2))) ;
+	IF_myASSERT(debugPARAM, eChan<NumM90E26 && ((RegAddr1==CALSTART && RegAddr2==CRC_1) || (RegAddr1==ADJSTART && RegAddr2==CRC_2))) ;
 	m90e26Write(eChan, RegAddr2, m90e26CalcCRC(eChan, RegAddr1 + 1, RegAddr2 - RegAddr1 - 1)) ;
 	m90e26Write(eChan, RegAddr1, CODE_CHECK) ;
 }
