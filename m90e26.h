@@ -173,9 +173,11 @@ enum {													// supported mode options
 	eN_GAIN,											// 1, 2, 4
 	eSOFTRESET,											// reset only
 	eRECALIB,											// reset & recalibrate
-	eBRIGHT,											//
-	eDISPLAY,											// sensor values display on/off
-	eBLANKING,											// set period for blanking between channels
+	m90e26CALC_CUR_OFST,
+	m90e26CALC_PWR_OFST,
+	m90e26CALIB_SAVE,
+	m90e26CALIB_DELETE,
+	m90e26WRITE_REG,
 } ;
 
 enum display_mode {
