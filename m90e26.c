@@ -364,6 +364,28 @@ int32_t	m90e26Identify(uint8_t eChan) {
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
 	m90e26mutex[eChan]	= xSemaphoreCreateMutex() ;
 	IF_myASSERT(debugRESULT, m90e26mutex[eChan]) ;
+
+#if		(M90E26_NEUTRAL == 0)		// Neutral Line
+	int	Uri0 = (eChan == 0) ? URI_M90E26_E_ACT_FWD_0	: URI_M90E26_E_ACT_FWD_1 ;
+	int UriX = (eChan == 0) ? URI_M90E26_P_APP_L_0		: URI_M90E26_P_APP_L_1 ;
+#elif	(M90E26_NEUTRAL == 1)
+	int	Uri0 = (eChan == 0) ? URI_M90E26_E_ACT_FWD_0	: URI_M90E26_E_ACT_FWD_1 ;
+	int UriX = (eChan == 0) ? URI_M90E26_P_APP_N_0		: URI_M90E26_P_APP_N_1 ;
+#else
+	#error "Invalid value"
+#endif
+	for (int i = Uri0 ; i <= UriX; ++ i) {
+		epw_t * psEW = &table_work[i] ;
+		if (i < (Uri0 + 6)) {
+			psEW->var.def.cv.sumX	= 1 ;
+		}
+		psEW->var.def.cv.vf	= vfFXX ;
+		psEW->var.def.cv.vt	= vtVALUE ;
+		psEW->var.def.cv.vs	= vs32B ;
+		psEW->var.def.cv.vc	= 1 ;
+		psEW->Tsns			= 1000 ;
+		psEW->Rsns			= 1000 ;
+	}
 	return erSUCCESS ;
 }
 
