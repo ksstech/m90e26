@@ -6,7 +6,6 @@
 
 #include	"FreeRTOS_Support.h"
 #include	"m90e26.h"
-#include	"m90e26_cmds.h"
 #include	"ssd1306.h"
 #include	"endpoint_id.h"
 
@@ -273,9 +272,12 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 	return iRV ;
 }
 
-void	CmndM90_WriteChannels(uint8_t eChan, uint8_t Reg, uint16_t Value) {
+int32_t	CmndM90_WriteChannels(uint8_t eChan, uint8_t Reg, uint16_t Value) {
 	uint8_t	Cnow = eChan < NumM90E26 ? eChan : 0 ;
-	do { m90e26WriteRegister(eChan, Reg, Value); } while (++Cnow < eChan) ;
+	do {
+		m90e26WriteRegister(eChan, Reg, Value) ;
+	} while (++Cnow < eChan) ;
+	return erSUCCESS ;
 }
 
 uint8_t	m90e26CalcInfo(epw_t * psEW) {
