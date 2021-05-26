@@ -102,12 +102,9 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 spi_device_handle_t				m90e26_handle[halHAS_M90E26] ;
 SemaphoreHandle_t				m90e26mutex[halHAS_M90E26] ;
 
-struct {
-	uint8_t	tBlank ;									// # seconds to blank in between
-	uint8_t MinContrast ;
-	uint8_t	MaxContrast ;
+struct __attribute__((packed)) {
 	uint8_t	NowContrast ;
-	struct {
+	struct __attribute__((packed)) {
 		uint8_t	E_Scale	: 1 ;							// 0 = WHr,	1 = KwHr
 		uint8_t	P_Scale	: 1 ;							// 0 = W,	1 = Kw
 		uint8_t	I_Scale	: 1 ;							// 0 = A,	1 = KwHr
@@ -417,7 +414,6 @@ int32_t	m90e26Init(uint8_t eChan) {
 	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
 	m90e26Config.Chan[eChan].P_Scale	= 0 ;			// W not kW
 	m90e26Config.Chan[eChan].I_Scale	= 0 ;			// A not mA
-	m90e26Config.MaxContrast			= 255 ;
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
