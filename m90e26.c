@@ -708,7 +708,7 @@ void	m90e26ReportData(void) {
 		printfx("%2d", eChan) ;
 		for (int i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
-				printfx(" %7g", sRTCvars.aRTCsum[eChan][i]) ;
+				printfx(" %7.2g", sRTCvars.aRTCsum[eChan][i]) ;
 			} else {
 				printfx("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
 			}
