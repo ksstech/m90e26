@@ -3,24 +3,18 @@
  */
 
 #include	"hal_variables.h"
+#include	"m90e26.h"
 
 #include	"FreeRTOS_Support.h"
-#include	"m90e26.h"
 #include	"ssd1306.h"
-#include	"endpoint_id.h"
 
-#include	"rules_engine.h"
-#include	"x_errors_events.h"
-#include	"systiming.h"					// timing debugging
-#include	"syslog.h"
 #include	"printfx.h"
-#include	"x_values_convert.h"
-#include	"x_string_to_values.h"
+#include	"syslog.h"
+#include	"systiming.h"					// timing debugging
+#include	"x_errors_events.h"
 
 #include	"hal_spi.h"
 #include	"hal_storage.h"
-#include	"hal_gpio.h"
-#include	"hal_variables.h"
 
 #include	<string.h>
 
@@ -47,6 +41,8 @@
 #define	debugRESULT					(debugFLAG_GLOBAL & debugFLAG & 0x8000)
 
 #if		(M90E26_NEUTRAL == 1)
+// ###################################### BUILD Macros #############################################
+
 	#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
 	#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
 #else
@@ -191,9 +187,9 @@ void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_1, m90e26ReadU16(eChan, CRC_1)) ;
-			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-PLconstH, SIZEOF_MEMBER(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 			nvsM90E26default[eChan].calreg[Reg-PLconstH] = Val ;
-			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-PLconstH, SIZEOF_MEMBER(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N, uint8_t)) {
 		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
@@ -201,16 +197,16 @@ void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_2, m90e26ReadU16(eChan, CRC_2)) ;
-			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-U_GAIN, SIZEOF_MEMBER(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 			nvsM90E26default[eChan].adjreg[Reg-U_GAIN] = Val ;
-			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-U_GAIN, SIZEOF_MEMBER(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 		}
 	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE, uint8_t) || Reg == CALSTART || Reg == ADJSTART) {
 		m90e26WriteU16(eChan, Reg, Val) ;				// write new value
 		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE, uint8_t)) {
-			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-FUNC_ENAB, SIZEOF_MEMBER(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_PRINT(debugTRACK, "Before: #%d %-'h\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 			nvsM90E26default[eChan].cfgreg[Reg-FUNC_ENAB] = Val ;
-			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-FUNC_ENAB, SIZEOF_MEMBER(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_PRINT(debugTRACK, "After : #%d %-'h\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 		}
 	} else {
 		SL_ERR("Invalid register=0x%02X", Reg) ;
@@ -256,14 +252,14 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
 	if (iRV == erSUCCESS) {
 		psCalib += Idx ;								// write the FuncEnab, Vsag Threshold and PowerMode registers
-		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i) ;
+		for (int32_t i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i) ;
 
 		m90e26WriteU16(eChan, CALSTART, CODE_START) ;		// write the configuration registers with METER calibration data
-		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eChan, i+PLconstH, psCalib->calreg[i]), ++i) ;
+		for (int32_t i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eChan, i+PLconstH, psCalib->calreg[i]), ++i) ;
 		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eChan, CALSTART, CODE_CHECK) ;
 
 		m90e26WriteU16(eChan, ADJSTART, CODE_START) ;		// write the configuration registers with MEASURE calibration data
-		for (int32_t i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eChan, i+U_GAIN, psCalib->adjreg[i]), ++i) ;
+		for (int32_t i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eChan, i+U_GAIN, psCalib->adjreg[i]), ++i) ;
 		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eChan, ADJSTART, CODE_CHECK) ;
 	} else {
 		SL_ERR("Failed Ch %d config %d '%s' (%x)", eChan, Idx, esp_err_to_name(iRV), iRV) ;
@@ -466,11 +462,7 @@ int32_t	m90e26ReadVoltage(epw_t * psEW) {		// OK
 int32_t	m90e26ReadPower(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float	f32Val	= (float) m90e26ReadI32TC(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
-	if (m90e26Config.Chan[psEW->eChan].P_Scale == 1) {
-		f32Val	/= 65536000.0 ;							// make KWh (alt range)
-	} else {
-		f32Val	/= 65536.0 ;							// make Wh (default)
-	}
+	f32Val /= (m90e26Config.Chan[psEW->eChan].P_Scale == 1) ? 65536000.0 : 65536.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	IF_PRINT(debugPOWER, "Power: Ch=%d  Reg=0x%02X  Val=%9.3f\n", psEW->eChan, m90e26RegAddr[psEW->idx], f32Val) ;
 	return erSUCCESS ;
@@ -495,32 +487,28 @@ int32_t	m90e26ReadEnergy(epw_t * psEW) {
 
 int32_t	m90e26ReadFrequency(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
-	float f32Val	= (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) / 100.0 ;
+	float f32Val = (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) / 100.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
 int32_t	m90e26ReadPowerFactor(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
-	float f32Val	= (float)  m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 1000.0 ;
+	float f32Val = (float)  m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 1000.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
 int32_t	m90e26ReadPowerAngle(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
-	float f32Val	= (float) m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 10.0 ;
+	float f32Val = (float) m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 10.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-inline uint16_t m90e26GetSysStatus(uint8_t eChan) {
-	return m90e26ReadU16(eChan, SYS_STATUS) ;
-}
+inline uint16_t m90e26GetSysStatus(uint8_t eChan) { return m90e26ReadU16(eChan, SYS_STATUS) ; }
 
-inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{
-	return m90e26ReadU16(eChan, MET_STATUS) ;
-}
+inline uint16_t m90e26GetMeterStatus(uint8_t eChan)	{ return m90e26ReadU16(eChan, MET_STATUS) ; }
 
 int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
 	uint16_t	NewValue ;
@@ -636,13 +624,13 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 			IF_SL_NOT(debugRESULT && iRV != erSUCCESS, "Error reading M90E26blob, starting with blank") ;
 
 			nvs_m90e26_t * psTemp = psCalib + P2 ;
-			for (int i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, calreg); ++i) {
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i) {
 				psTemp->calreg[i] = m90e26ReadU16(Cnow, i + PLconstH) ;
 			}
-			for (int i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, adjreg); ++i) {
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); ++i) {
 				psTemp->adjreg[i] = m90e26ReadU16(Cnow, i + U_GAIN) ;
 			}
-			for (int i = 0; i < NUM_OF_MEM_ELEM(nvs_m90e26_t, cfgreg); ++i) {
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); ++i) {
 				psTemp->cfgreg[i] = m90e26ReadU16(Cnow, i + FUNC_ENAB) ;
 			}
 
@@ -720,9 +708,9 @@ void	m90e26ReportData(void) {
 		I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 	} ;
 	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), xpfSGR(attrRESET, 0, 0, 0)) ;
-	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
+	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
-		for (int32_t i = 0; i < eNUM_DATA_REG; ++i) {
+		for (int i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
 				printfx(" %7g", sRTCvars.aRTCsum[eChan][i]) ;
 			} else {
