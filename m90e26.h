@@ -1,33 +1,12 @@
 /*
- * Copyright 2018-19 AM Maree/KSS Technologies (Pty) Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- */
-
-/*
  * m90e26.h
  */
 
 #pragma		once
 
-#include	"hal_config.h"								// halHAS_M90E26
-#include	"x_definitions.h"
-
-#include	<stdint.h>
+#include	"hal_config.h"
+#include	"definitions.h"
+#include	"rules_engine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,11 +24,6 @@ extern "C" {
 
 // ##################################### BUILD definitions #########################################
 
-// select inclusion of LSB value for RMS and power measurements
-#define	m90e26USE_LSB			1						// add LSB to RMS & Pwr values read
-#define	m90e26CALIB_32BIT		1
-#define	m90e26NEUTRAL			1
-#define	m90e26CALIB_ITER		10						// number of READ iterations to determine mean value
 
 // ############################################# Macros ############################################
 
@@ -156,7 +130,7 @@ enum {													// sensor data registers
  	eP_ANGLE_L,
  	eP_APP_L,
 
-#if		(m90e26NEUTRAL == 1)							// Neutral Line
+#if		(m90e26NEUTRAL > 0)								// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
@@ -192,7 +166,7 @@ enum { FACTORY = 0, CALIB1, CALIB2, CALIB3, CALIB_NUM} ;
 
 // ######################################### Structures ############################################
 
-typedef struct conf_reg_s {
+typedef struct {
  	uint8_t		addr ;
  	uint8_t		flag ;
  	uint16_t	raw_val ;

@@ -293,6 +293,11 @@ uint8_t	m90e26CalcInfo(epw_t * psEW) {
  * Overall process documented in the following Application Note:
  * http://ww1.microchip.com/downloads/en/AppNotes/Atmel-46102-SE-M90E26-ApplicationNote.pdf */
 
+// select inclusion of LSB value for RMS and power measurements
+#define	m90e26USE_LSB				1					// add LSB to RMS & Pwr values read
+#define	m90e26CALIB_32BIT			1
+#define	m90e26CALIB_ITER			10					// number of READ iterations to determine mean value
+
 /**
  * m90e26SetPowerOffset() -
  * @param	eChan
@@ -539,15 +544,9 @@ int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 
 // ############################### dynamic configuration support ###################################
 
-int32_t	m90e26DisplayContrast(uint8_t Contrast) {
-	ssd1306SetContrast(Contrast) ;
-	return erSUCCESS ;
-}
+int32_t	m90e26DisplayContrast(uint8_t Contrast) { ssd1306SetContrast(Contrast) ; return erSUCCESS ; }
 
-int32_t	m90e26DisplayState(uint8_t State) {
-	ssd1306SetDisplayState(State) ;
-	return erSUCCESS ;
-}
+int32_t	m90e26DisplayState(uint8_t State) { ssd1306SetDisplayState(State) ; return erSUCCESS ; }
 
 /**
  * m90e26ConfigMode() --  configure device functionality
