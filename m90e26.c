@@ -438,8 +438,8 @@ int32_t	m90e26ReadCurrent(epw_t * psEW) {
 
 #else
 	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L) ;
-	f32Val /= m90e26Config.eChan[psEW->eChan].L_Gain ;
-	IF_PRINT(debugCURRENT, "  Lgain=%d", m90e26Config.eChan[psEW->eChan].L_Gain) ;
+	f32Val /= m90e26Config.Chan[psEW->eChan].L_Gain ;
+	IF_PRINT(debugCURRENT, "  Lgain=%d", m90e26Config.Chan[psEW->eChan].L_Gain) ;
 
 #endif
 	IF_PRINT(debugCURRENT, "  Act=%4.5f\n", f32Val) ;
