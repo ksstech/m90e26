@@ -248,8 +248,8 @@ int32_t m90e26ReadI32TC(uint8_t eChan, uint8_t Reg) { return ~m90e26ReadU32(eCha
 int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 	IF_myASSERT(debugPARAM, Idx < CALIB_NUM) ;
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
-	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 	if (iRV == erSUCCESS) {
 		psCalib += Idx ;								// write the FuncEnab, Vsag Threshold and PowerMode registers
 		for (int32_t i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i) ;
@@ -394,7 +394,7 @@ int32_t	m90e26Init(uint8_t eChan) {
 	/* Check that blob with CALibration and ADJustment values exists
 	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
-	nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
+	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 	int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
 	if (iRV != erSUCCESS || SizeBlob != CALIB_NUM * sizeof(nvs_m90e26_t)) {
 		memset(psCalib, 0, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
@@ -403,7 +403,7 @@ int32_t	m90e26Init(uint8_t eChan) {
 		SL_WARN("NVS defaults create %s", iRV == erSUCCESS ? "Success" : "Failed") ;
 		IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
 	}
-	free(psCalib) ;
+	vRtosFree(psCalib) ;
 
 	m90e26WriteU16(eChan, SOFTRESET, CODE_RESET) ;		// start with default values, not running, no valid values
 	m90e26LoadNVSConfig(eChan, 0) ;						// load config #0 from NVS blob as default
@@ -632,7 +632,7 @@ int32_t	m90e26ConfigMode(rule_t * psRule) {
 
 			iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 			IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
-			free(psCalib) ;
+			vRtosFree(psCalib) ;
 			break ;
 
 		case m90e26CALIB_DELETE:
