@@ -618,7 +618,7 @@ int	m90e26ConfigMode(rule_t * psRule) {
 			}
 
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
-			nvs_m90e26_t * psCalib = malloc(SizeBlob) ;
+			nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 			memset(psCalib, 0, SizeBlob) ;
 			int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
 			IF_SL_NOT(debugRESULT && iRV != erSUCCESS, "Error reading M90E26blob, starting with blank") ;
