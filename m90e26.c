@@ -817,7 +817,6 @@ void	m90e26Display(void) {
 	Index %= (NumM90E26 * 2) ;
 	if (Index == 0) {
 		m90e26Config.NowContrast = ssd1306SetContrast(m90e26Config.NowContrast + m90e26STEP_CONTRAST) ;
-		IF_PRINT(debugCONTRAST, "Contrast = %d\n", m90e26Config.NowContrast) ;
 	}
 }
 
