@@ -161,7 +161,9 @@ void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
 	m90e26_buf.tx_data[0]	= address ;
 	m90e26_buf.tx_data[1]	= val >> 8 ;
 	m90e26_buf.tx_data[2]	= val & 0xFF ;
+	IF_EXEC_1(debugTIMING, xSysTimerStart, stM90EX6W) ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
+	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6W) ;
 	xRtosSemaphoreGive(&m90e26mutex[eChan]) ;
 	IF_PRINT(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]) ;
 }
@@ -174,7 +176,9 @@ uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
 	m90e26_buf.length		= 8 * 3 ;
 	m90e26_buf.flags 		= SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA ;
 	m90e26_buf.tx_data[0]	= address | 0x80 ;
+	IF_EXEC_1(debugTIMING, xSysTimerStart, stM90EX6R) ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
+	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6R) ;
 	xRtosSemaphoreGive(&m90e26mutex[eChan]) ;
 	IF_PRINT(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]) ;
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
@@ -391,6 +395,8 @@ int32_t	m90e26Identify(uint8_t eChan) {
  */
 int32_t	m90e26Init(uint8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
+	IF_SYSTIMER_INIT(debugTIMING, stM90EX6R, stMICROS, "M90E26RD", 1500, 15000) ;
+	IF_SYSTIMER_INIT(debugTIMING, stM90EX6W, stMICROS, "M90E26WR", 1500, 15000) ;
 	/* Check that blob with CALibration and ADJustment values exists
 	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
