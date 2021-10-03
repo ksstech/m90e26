@@ -51,6 +51,8 @@
 	#error	"error in m90e26 URI definitions!!!"
 #endif
 
+#define	M90E26_T_SNS				1000
+
 // ###################################### Private variables #######################################
 
 spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
@@ -382,8 +384,7 @@ int	m90e26Identify(uint8_t eChan) {
 		psEW->var.def.cv.vt	= vtVALUE ;
 		psEW->var.def.cv.vs	= vs32B ;
 		psEW->var.def.cv.vc	= 1 ;
-		psEW->Tsns = 1000 ;
-		psEW->Rsns = 1000 ;
+		psEW->Tsns = psEW->Rsns = M90E26_T_SNS;		// start sensing
 	}
 	return erSUCCESS ;
 }
@@ -477,14 +478,14 @@ int	m90e26ReadPower(epw_t * psEW) {
 // ########################### 16 bit value endpoint support functions #############################
 
 int	m90e26ReadEnergy(epw_t * psEW) {
-	if (psEW->var.def.cv.sumX) {					// if just a normal update cycle
+	if (psEW->var.def.cv.sumX) {	// if just a normal update cycle
 		m90e26CalcInfo(psEW) ;
 		float f32Val	= (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
 		f32Val	/= m90e26Config.Chan[psEW->eChan].E_Scale ? 10000.0 : 10.0 ;
 		xEpSetValue(psEW, (x32_t) f32Val) ;
 		// Update running total in NVS memory
 		sRTCvars.aRTCsum[psEW->eChan][psEW->idx] += f32Val ;
-	} else {											// else it is a value reset call
+	} else {						// else it is a value reset call
 		vCV_ResetValue(&psEW->var) ;
 		IF_PRINT(debugENERGY, "Energy: Sum RESET\n") ;
 	}
