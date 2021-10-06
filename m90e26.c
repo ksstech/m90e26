@@ -151,7 +151,7 @@ nvs_m90e26_t	nvsM90E26default[halHAS_M90E26] = {
 
 // ############################### common support routines #########################################
 
-void	m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
+void m90e26WriteU16(uint8_t eChan, uint8_t address, uint16_t val) {
 	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eChan]) ;
 	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY) ;
 	spi_transaction_t m90e26_buf ;
@@ -184,7 +184,7 @@ uint16_t m90e26ReadU16(uint8_t eChan, uint8_t address) {
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2] ;
 }
 
-void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
+void m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 	if (INRANGE(PLconstH, Reg, MET_MODE, uint8_t)) {
 		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
 			SL_INFO("CALSTART (x20) in wrong state, must be x5678") ;
@@ -303,17 +303,17 @@ uint8_t	m90e26CalcInfo(epw_t * psEW) {
 #define	m90e26CALIB_ITER			10					// number of READ iterations to determine mean value
 
 /**
- * m90e26SetPowerOffset() -
+ * Re/Active, LINE & NEUTRAL, Power Offset calibration
  * @param	eChan
  * @param	RegPower
  * @param	RegOFST
- * [Re]Active, LINE & NEUTRAL Power Offset calibration
+ *
  * Not sure if the power register should be read whilst in normal or
  * adjustment mode. Currently no real value is being read
  */
 void m90e26PowerOffsetCalcSet(uint8_t eChan, uint8_t RegPOWER, uint8_t RegOFST) {
 	m90e26WriteU16(eChan, POWER_MODE, CODE_POWER) ;		// set into low power mode for calibration
-#if 	(m90e26CALIB_32BIT == 1)
+#if (m90e26CALIB_32BIT == 1)
 	uint64_t SumOffset = 0 ;
 	for (int i = 0; i < m90e26CALIB_ITER; ++i) {
 		uint32_t CurVal = m90e26ReadU32(eChan, RegPOWER) ;
@@ -554,13 +554,9 @@ int	m90e26DisplayContrast(uint8_t Contrast) { ssd1306SetContrast(Contrast) ; ret
 int	m90e26DisplayState(uint8_t State) { ssd1306SetDisplayState(State) ; return erSUCCESS ; }
 
 /**
- * m90e26ConfigMode() --  configure device functionality
- *
- * mode	/m90e26	option [para1 [para2 [para3]]]
- * 				L_GAIN	chan gain
- * 				N_GAIN	chan gain
- * 				BRIGHT	brightness
- * 				DISPLAY
+ * Configure device functionality
+ * @brief	mode /m90e26 ch# option [para1 [para2 [para3]]]
+ * 					Option 1=Lgain	2=Ngain
  **/
 int	m90e26ConfigMode(rule_t * psRule) {
 	uint8_t	AI = psRule->ActIdx ;
@@ -621,19 +617,16 @@ int	m90e26ConfigMode(rule_t * psRule) {
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 			nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 			memset(psCalib, 0, SizeBlob) ;
-			int32_t iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+			int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
 			IF_SL_NOT(debugRESULT && iRV != erSUCCESS, "Error reading M90E26blob, starting with blank") ;
 
 			nvs_m90e26_t * psTemp = psCalib + P2 ;
-			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i) {
-				psTemp->calreg[i] = m90e26ReadU16(Cnow, i + PLconstH) ;
-			}
-			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); ++i) {
-				psTemp->adjreg[i] = m90e26ReadU16(Cnow, i + U_GAIN) ;
-			}
-			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); ++i) {
-				psTemp->cfgreg[i] = m90e26ReadU16(Cnow, i + FUNC_ENAB) ;
-			}
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i)
+				psTemp->calreg[i] = m90e26ReadU16(Cnow, i + PLconstH);
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); ++i)
+				psTemp->adjreg[i] = m90e26ReadU16(Cnow, i + U_GAIN);
+			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); ++i)
+				psTemp->cfgreg[i] = m90e26ReadU16(Cnow, i + FUNC_ENAB);
 
 			iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 			IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
@@ -646,10 +639,8 @@ int	m90e26ConfigMode(rule_t * psRule) {
 			break ;
 
 		case m90e26WRITE_REG:
-			if (OUTSIDE(SOFTRESET, P2, CRC_2, int32_t) ||
-				OUTSIDE(0, P3, 0xFFFF, int32_t)) {
-				return erSCRIPT_INV_PARA ;
-			}
+			if (OUTSIDE(SOFTRESET, P2, CRC_2, int32_t) || OUTSIDE(0, P3, 0xFFFF, int32_t))
+				return erSCRIPT_INV_PARA;
 			CmndM90_WriteChannels(Cnow, P2, P3) ;
 			break ;
 
@@ -693,7 +684,7 @@ void m90e26ReportCalib(void) {
 	}
 }
 
-void	m90e26ReportAdjust(void) {
+void m90e26ReportAdjust(void) {
 	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
@@ -702,7 +693,7 @@ void	m90e26ReportAdjust(void) {
 	}
 }
 
-void	m90e26ReportData(void) {
+void m90e26ReportData(void) {
 	const uint8_t m90e26DataReg[] = {
 		E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS,
 		I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
@@ -722,7 +713,7 @@ void	m90e26ReportData(void) {
 	}
 }
 
-void	m90e26ReportStatus(void) {
+void m90e26ReportStatus(void) {
 	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		m90e26system_stat_t SysStatus = (m90e26system_stat_t) m90e26GetSysStatus(eChan) ;
@@ -747,7 +738,7 @@ void	m90e26ReportStatus(void) {
 	}
 }
 
-void	m90e26Report(void) {
+void m90e26Report(void) {
 	m90e26ReportCalib() ;
 	m90e26ReportAdjust() ;
 	m90e26ReportData() ;
@@ -757,7 +748,7 @@ void	m90e26Report(void) {
 #define	m90e26STEP_CONTRAST		0x04
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
 
-void	m90e26DisplayInfo(uint8_t Index) {
+void m90e26DisplayInfo(uint8_t Index) {
 	static	epw_t * psEW ;
 #if	(halHAS_M90E26 == 2)
 	uint8_t eChan = Index / NumM90E26 ;
@@ -786,19 +777,13 @@ void	m90e26DisplayInfo(uint8_t Index) {
 	}
 }
 
-void	m90e26Display(void) {
-	static	TickType_t	NextTick = 0 ;
-	static	uint8_t Index = 0 ;
-
-	if (m90e26_handle[0] == 0) {
-		return ;
-	}
+void m90e26Display(void) {
+	if (m90e26_handle[0] == 0) return;
+	static TickType_t NextTick = 0 ;
+	static uint8_t Index = 0 ;
 	TickType_t CurTick = xTaskGetTickCount() ;
-	if (NextTick == 0) {
-		NextTick = CurTick ;
-	} else if (NextTick > CurTick) {
-		return ;
-	}
+	if (NextTick == 0) NextTick = CurTick ;
+	else if (NextTick > CurTick) return;
 #if 0
 	if ((Index == 0) && m90e26Config.tBlank) {
 		NextTick = CurTick + pdMS_TO_TICKS(m90e26Config.tBlank * MILLIS_IN_SECOND) ;
@@ -808,17 +793,13 @@ void	m90e26Display(void) {
 #endif
 	//
 	NextTick = CurTick + m90e26STAT_INTVL ;
-	if (m90e26Config.NowContrast > 0) {
-		m90e26DisplayInfo(Index) ;
-	} else {
-		ssd1306SetDisplayState(0) ;
-	}
+	if (m90e26Config.NowContrast > 0) m90e26DisplayInfo(Index) ;
+	else ssd1306SetDisplayState(0);
 	//
 	++Index ;
 	Index %= (NumM90E26 * 2) ;
-	if (Index == 0) {
-		m90e26Config.NowContrast = ssd1306SetContrast(m90e26Config.NowContrast + m90e26STEP_CONTRAST) ;
-	}
+	if (Index == 0)
+		m90e26Config.NowContrast = ssd1306SetContrast(m90e26Config.NowContrast + m90e26STEP_CONTRAST);
 }
 
 /* ################################### OLD CODE #####################################
