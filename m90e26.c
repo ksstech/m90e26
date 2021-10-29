@@ -658,7 +658,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 #define	BLANK8			"        "
 
 void m90e26ReportCalib(void) {
-	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_CALIB HDR_MMODE, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C%s%C\n", colourFG_CYAN, HDR_CALIB HDR_MMODE, attrRESET) ;
 	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int32_t i = CALSTART; i <= CRC_1; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
@@ -677,8 +677,8 @@ void m90e26ReportCalib(void) {
 }
 
 void m90e26ReportAdjust(void) {
-	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0,0,0), HDR_ADJUST, xpfSGR(attrRESET, 0, 0, 0)) ;
 	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
+	printfx("%C%s%C\n", colourFG_CYAN, HDR_ADJUST, attrRESET);
 		printfx("%2d", eChan) ;
 		for (int32_t i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
 		printfx("\n") ;
@@ -691,7 +691,7 @@ void m90e26ReportData(void) {
 		I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
 		I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 	} ;
-	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\n", colourFG_CYAN, attrRESET) ;
 	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int i = 0; i < eNUM_DATA_REG; ++i) {
@@ -706,7 +706,7 @@ void m90e26ReportData(void) {
 }
 
 void m90e26ReportStatus(void) {
-	printfx("%C%s%C\n", xpfSGR(colourFG_CYAN, 0, 0, 0), HDR_STATUS, xpfSGR(attrRESET, 0, 0, 0)) ;
+	printfx("%C%s%C\n", colourFG_CYAN, HDR_STATUS, attrRESET) ;
 	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 		m90e26system_stat_t SysStatus = (m90e26system_stat_t) m90e26GetSysStatus(eChan) ;
 		printfx("%2d  0x%04X", eChan, SysStatus.val) ;
