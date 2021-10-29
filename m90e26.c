@@ -405,7 +405,8 @@ int	m90e26Init(uint8_t eChan) {
 		memset(psCalib, 0, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default)) ;
 		iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob) ;
-		SL_WARN("NVS defaults create %s", iRV == erSUCCESS ? "Success" : "Failed") ;
+		if (iRV == erSUCCESS)
+			SL_WARN("NVS defaults create Failed");
 		IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
 	}
 	vRtosFree(psCalib) ;
@@ -602,16 +603,15 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			break ;
 
 		case m90e26CALIB_SAVE:
-			if (OUTSIDE(0, P2, CALIB_NUM-1, int32_t)) {
-				return erSCRIPT_INV_PARA ;
-			}
+			if (OUTSIDE(0, P2, CALIB_NUM-1, int32_t))
+				return erSCRIPT_INV_PARA;
 
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 			nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 			memset(psCalib, 0, SizeBlob) ;
 			int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
-			IF_SL_NOT(debugRESULT && iRV != erSUCCESS, "Error reading M90E26blob, starting with blank") ;
-
+			if (iRV != erSUCCESS)
+				SL_INFO("Error reading M90E26blob, starting with blank");
 			nvs_m90e26_t * psTemp = psCalib + P2 ;
 			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i)
 				psTemp->calreg[i] = m90e26ReadU16(Xnow, i + PLconstH);
@@ -677,10 +677,10 @@ void m90e26ReportCalib(void) {
 }
 
 void m90e26ReportAdjust(void) {
-	for (int32_t eChan = 0; eChan < NumM90E26; ++eChan) {
 	printfx("%C%s%C\n", colourFG_CYAN, HDR_ADJUST, attrRESET);
+	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
-		for (int32_t i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
+		for (int i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
 		printfx("\n") ;
 	}
 }
