@@ -558,54 +558,46 @@ int	m90e26DisplayState(uint8_t State) { ssd1306SetDisplayState(State) ; return e
  * @brief	mode /m90e26 ch# option [para1 [para2 [para3]]]
  * 					Option 1=Lgain	2=Ngain
  **/
-int	m90e26ConfigMode(rule_t * psRule) {
-	uint8_t	AI = psRule->ActIdx ;
-	uint32_t P0 = psRule->para.x32[AI][0].u32 ;
-	uint32_t P1 = psRule->para.x32[AI][1].u32 ;
-	uint32_t P2 = psRule->para.x32[AI][2].u32 ;
-	uint32_t P3 = psRule->para.x32[AI][3].u32 ;
-	IF_PRINT(debugMODE, "m90e26 Idx  Mode=%d  p2=%d\n", P0, P1, P2) ;
+int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
+	uint8_t	AI = psRule->ActIdx;
+	uint32_t P0 = psRule->para.x32[AI][0].u32;
+	uint32_t P1 = psRule->para.x32[AI][1].u32;
+	uint32_t P2 = psRule->para.x32[AI][2].u32;
+	uint32_t P3 = psRule->para.x32[AI][3].u32;
+	IF_PRINT(debugMODE, "m90e26 Idx  Mode=%d  p2=%d\n", P0, P1, P2);
 	int iRV = erSUCCESS ;
-	uint8_t	Cnow, Cmax ;
-	if ( P0 < NumM90E26) {
-		Cnow = Cmax = P0 ;
-	} else {
-		Cnow = 0 ;
-		Cmax = NumM90E26 ;
-	}
 	do {
 		switch (P1) {
 		case eL_GAIN:
-			iRV = m90e26SetLiveGain(Cnow, P2) ;
+			iRV = m90e26SetLiveGain(Xnow, P2) ;
 			break ;
 
 	#if		(m90e26NEUTRAL > 0)		// NEUTRAL Line wrapper functions
 		case eN_GAIN:
-			iRV = m90e26SetNeutralGain(Cnow, P2) ;
+			iRV = m90e26SetNeutralGain(Xnow, P2) ;
 			break ;
 	#endif
 
 		case eSOFTRESET:
 		case eRECALIB:
-			CmndM90_WriteChannels(Cnow, SOFTRESET, CODE_RESET) ;
-			if (P1 == eRECALIB) {
-				iRV = m90e26Init(Cnow) ;
-			}
+			CmndM90_WriteChannels(Xnow, SOFTRESET, CODE_RESET) ;
+			if (P1 == eRECALIB)
+				iRV = m90e26Init(Xnow);
 			break ;
 
 		case m90e26CALC_CUR_OFST:
-			m90e26CurrentOffsetCalcSet(Cnow, I_RMS_L, I_GAIN_L, I_OFST_L) ;
+			m90e26CurrentOffsetCalcSet(Xnow, I_RMS_L, I_GAIN_L, I_OFST_L) ;
 	#if		(m90e26NEUTRAL > 0)
-			m90e26CurrentOffsetCalcSet(Cnow, I_RMS_N, I_GAIN_N, I_OFST_N) ;
+			m90e26CurrentOffsetCalcSet(Xnow, I_RMS_N, I_GAIN_N, I_OFST_N) ;
 	#endif
 			break ;
 
 		case m90e26CALC_PWR_OFST:
-			m90e26PowerOffsetCalcSet(Cnow, P_ACT_L, P_OFST_L) ;
-			m90e26PowerOffsetCalcSet(Cnow, P_REACT_L, Q_OFST_L) ;
+			m90e26PowerOffsetCalcSet(Xnow, P_ACT_L, P_OFST_L) ;
+			m90e26PowerOffsetCalcSet(Xnow, P_REACT_L, Q_OFST_L) ;
 	#if		(m90e26NEUTRAL > 0)
-			m90e26PowerOffsetCalcSet(Cnow, P_ACT_N, P_OFST_N) ;
-			m90e26PowerOffsetCalcSet(Cnow, P_REACT_N, Q_OFST_N) ;
+			m90e26PowerOffsetCalcSet(Xnow, P_ACT_N, P_OFST_N) ;
+			m90e26PowerOffsetCalcSet(Xnow, P_REACT_N, Q_OFST_N) ;
 	#endif
 			break ;
 
@@ -622,11 +614,11 @@ int	m90e26ConfigMode(rule_t * psRule) {
 
 			nvs_m90e26_t * psTemp = psCalib + P2 ;
 			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i)
-				psTemp->calreg[i] = m90e26ReadU16(Cnow, i + PLconstH);
+				psTemp->calreg[i] = m90e26ReadU16(Xnow, i + PLconstH);
 			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); ++i)
-				psTemp->adjreg[i] = m90e26ReadU16(Cnow, i + U_GAIN);
+				psTemp->adjreg[i] = m90e26ReadU16(Xnow, i + U_GAIN);
 			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); ++i)
-				psTemp->cfgreg[i] = m90e26ReadU16(Cnow, i + FUNC_ENAB);
+				psTemp->cfgreg[i] = m90e26ReadU16(Xnow, i + FUNC_ENAB);
 
 			iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 			IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
@@ -635,19 +627,19 @@ int	m90e26ConfigMode(rule_t * psRule) {
 
 		case m90e26CALIB_DELETE:
 			iRV = halSTORAGE_DeleteKeyValue(halSTORAGE_STORE, halSTORAGE_KEY_M90E26) ;
-			Cnow = Cmax ;
+			Xnow = Xmax ;
 			break ;
 
 		case m90e26WRITE_REG:
 			if (OUTSIDE(SOFTRESET, P2, CRC_2, int32_t) || OUTSIDE(0, P3, 0xFFFF, int32_t))
 				return erSCRIPT_INV_PARA;
-			CmndM90_WriteChannels(Cnow, P2, P3) ;
+			CmndM90_WriteChannels(Xnow, P2, P3) ;
 			break ;
 
 		default:
 			iRV = erSCRIPT_INV_MODE ;
 		}
-	} while (iRV >= erSUCCESS && ++Cnow < Cmax) ;
+	} while (iRV >= erSUCCESS && ++Xnow < Xmax) ;
 	return iRV ;
 }
 
