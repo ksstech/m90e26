@@ -94,8 +94,9 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 #endif
 } ;
 
-spi_device_handle_t				m90e26_handle[halHAS_M90E26] ;
-SemaphoreHandle_t				m90e26mutex[halHAS_M90E26] ;
+spi_device_handle_t	m90e26_handle[halHAS_M90E26];
+SemaphoreHandle_t	m90e26mutex[halHAS_M90E26];
+uint8_t	NumM90E26 = halHAS_M90E26;
 
 struct __attribute__((packed)) {
 	uint8_t	NowContrast ;
