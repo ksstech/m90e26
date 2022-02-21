@@ -529,7 +529,7 @@ int	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) {
 	case 24:	NewValue	= 0x6000 ;		m90e26Config.Chan[eChan].L_Gain	= 24 ;	break ;
 	default:
 		IF_SL_ERR(debugPARAM, "Invalid Live Gain =%d", Gain) ;
-		return erSCRIPT_INV_PARA ;
+		return erINVALID_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0xE000) ;
 	return erSUCCESS ;
@@ -543,7 +543,7 @@ int	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) {
 	case 4:		NewValue	= 0x0800 ;		m90e26Config.Chan[eChan].N_Gain = 4 ;	break ;
 	default:
 		IF_SL_ERR(debugPARAM, "Invalid Neutral Gain =%d", Gain) ;
-		return erSCRIPT_INV_PARA ;
+		return erINVALID_PARA ;
 	}
 	NewValue = m90e26ReadModifyWrite(eChan, MET_MODE, NewValue, 0x1800) ;
 	return erSUCCESS ;
@@ -605,7 +605,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 
 		case m90e26CALIB_SAVE:
 			if (OUTSIDE(0, P2, CALIB_NUM-1, int32_t))
-				return erSCRIPT_INV_PARA;
+				return erINVALID_PARA;
 
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 			nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
@@ -633,12 +633,12 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 
 		case m90e26WRITE_REG:
 			if (OUTSIDE(SOFTRESET, P2, CRC_2, int32_t) || OUTSIDE(0, P3, 0xFFFF, int32_t))
-				return erSCRIPT_INV_PARA;
+				return erINVALID_PARA;
 			CmndM90_WriteChannels(Xnow, P2, P3) ;
 			break ;
 
 		default:
-			iRV = erSCRIPT_INV_MODE ;
+			iRV = erINVALID_MODE ;
 		}
 	} while (iRV >= erSUCCESS && ++Xnow < Xmax) ;
 	return iRV ;
