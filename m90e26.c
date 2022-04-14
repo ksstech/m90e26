@@ -192,9 +192,9 @@ void m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_1, m90e26ReadU16(eChan, CRC_1)) ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-'H\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 			nvsM90E26default[eChan].calreg[Reg-PLconstH] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-'H\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N, uint8_t)) {
 		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
@@ -202,16 +202,16 @@ void m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_2, m90e26ReadU16(eChan, CRC_2)) ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-'H\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 			nvsM90E26default[eChan].adjreg[Reg-U_GAIN] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-'H\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 		}
 	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE, uint8_t) || Reg == CALSTART || Reg == ADJSTART) {
 		m90e26WriteU16(eChan, Reg, Val) ;				// write new value
 		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE, uint8_t)) {
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-'H\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 			nvsM90E26default[eChan].cfgreg[Reg-FUNC_ENAB] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-'H\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 		}
 	} else {
 		SL_ERR("Invalid register=0x%02X", Reg) ;
@@ -811,7 +811,7 @@ uint16_t m90e26CalcCRC(uint8_t eChan, uint8_t Addr0, int8_t Count) {
 		Lcrc += RegData[i] & 0xFF ;
 		Hcrc ^= RegData[i] & 0xFF ;
 	}
-	IF_P(debugCRC, "CRC=%04x from %-'h\n", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
+	IF_P(debugCRC, "CRC=%04x from %-`h\n", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
 	return (Hcrc << 8) | Lcrc ;
 }
 
