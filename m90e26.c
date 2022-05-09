@@ -564,9 +564,9 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 	uint8_t	AI = psRule->ActIdx;
 	uint32_t P0 = psRule->para.x32[AI][0].u32;
 	uint32_t P1 = psRule->para.x32[AI][1].u32;
-	uint32_t P2 = psRule->para.x32[AI][2].u32;
-	uint32_t P3 = psRule->para.x32[AI][3].u32;
-	IF_P(debugMODE, "m90e26 Idx  Mode=%d  p2=%d\n", P0, P1, P2);
+	int32_t P2 = psRule->para.x32[AI][2].i32;
+	int32_t P3 = psRule->para.x32[AI][3].i32;
+	IF_P(debugMODE, "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\n", P0, P1, P2, P3);
 	int iRV = erSUCCESS ;
 	do {
 		switch (P1) {
@@ -604,7 +604,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			break ;
 
 		case m90e26CALIB_SAVE:
-			if (OUTSIDE(0, P2, CALIB_NUM-1, int32_t))
+			if (OUTSIDE(0, P2, CALIB_NUM-1, int))
 				return erINVALID_PARA;
 
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
@@ -632,7 +632,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			break ;
 
 		case m90e26WRITE_REG:
-			if (OUTSIDE(SOFTRESET, P2, CRC_2, int32_t) || OUTSIDE(0, P3, 0xFFFF, int32_t))
+			if (OUTSIDE(SOFTRESET, P2, CRC_2, int) || OUTSIDE(0, P3, 0xFFFF, int))
 				return erINVALID_PARA;
 			CmndM90_WriteChannels(Xnow, P2, P3) ;
 			break ;
