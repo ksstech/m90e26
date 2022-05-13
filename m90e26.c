@@ -1,22 +1,22 @@
 /*
- * Copyright 2018-21 Andre M. Maree/KSS Technologies (Pty) Ltd.
+ * Copyright 2018-22 (c) Andre M. Maree/KSS Technologies (Pty) Ltd.
  */
+
+#include	<string.h>
 
 #include	"hal_variables.h"
 #include	"m90e26.h"
 #include	"options.h"
 #include	"FreeRTOS_Support.h"
 #include	"ssd1306.h"
-
 #include	"printfx.h"
 #include	"syslog.h"
 #include	"systiming.h"					// timing debugging
 #include	"x_errors_events.h"
-
 #include	"hal_spi.h"
 #include	"hal_storage.h"
 
-#include	<string.h>
+#include	"nvs.h"
 
 #define	debugFLAG					0xF400
 
@@ -254,7 +254,7 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 	IF_myASSERT(debugPARAM, Idx < CALIB_NUM) ;
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
-	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_OK) ;
 	if (iRV == erSUCCESS) {
 		psCalib += Idx ;								// write the FuncEnab, Vsag Threshold and PowerMode registers
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i) ;
@@ -267,7 +267,7 @@ int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) {
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eChan, i+U_GAIN, psCalib->adjreg[i]), ++i) ;
 		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eChan, ADJSTART, CODE_CHECK) ;
 	} else {
-		SL_ERR("Failed Ch %d config %d '%s' (%x)", eChan, Idx, esp_err_to_name(iRV), iRV) ;
+		SL_ERR("Failed Ch=%d config=%d", eChan, Idx);
 	}
 	free (psCalib) ;
 	return iRV ;
@@ -401,14 +401,12 @@ int	m90e26Init(uint8_t eChan) {
 	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
-	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
+	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_ERR_NVS_NOT_FOUND);
 	if ((iRV != erSUCCESS) || (SizeBlob != (CALIB_NUM * sizeof(nvs_m90e26_t)))) {
 		memset(psCalib, 0, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default)) ;
-		iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob) ;
-		if (iRV == erSUCCESS)
-			SL_WARN("NVS defaults create Failed");
-		IF_myASSERT(debugRESULT, iRV == erSUCCESS) ;
+		iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob);
+		IF_myASSERT(debugRESULT, iRV == erSUCCESS);
 	}
 	vRtosFree(psCalib) ;
 
@@ -610,9 +608,8 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
 			nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 			memset(psCalib, 0, SizeBlob) ;
-			int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob) ;
-			if (iRV != erSUCCESS)
-				SL_INFO("Error reading M90E26blob, starting with blank");
+			int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_OK);
+			IF_SL_INFO(iRV != erSUCCESS, "Error reading M90E26blob, starting with blank");
 			nvs_m90e26_t * psTemp = psCalib + P2 ;
 			for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); ++i)
 				psTemp->calreg[i] = m90e26ReadU16(Xnow, i + PLconstH);
