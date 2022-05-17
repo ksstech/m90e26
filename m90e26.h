@@ -4,8 +4,7 @@
 
 #pragma		once
 
-#include	"hal_config.h"
-#include	"definitions.h"
+#include	"hal_variables.h"	// hal_config sdk_config esp_err definitions
 #include	"rules_engine.h"
 
 #ifdef __cplusplus
