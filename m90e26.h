@@ -167,61 +167,61 @@ enum { FACTORY = 0, CALIB1, CALIB2, CALIB3, CALIB_NUM} ;
 // ######################################### Structures ############################################
 
 typedef struct {
- 	uint8_t		addr ;
- 	uint8_t		flag ;
- 	uint16_t	raw_val ;
+ 	u8_t	addr ;
+ 	u8_t	flag ;
+ 	u16_t	raw_val ;
 } conf_reg_t ;
 DUMB_STATIC_ASSERT(sizeof(conf_reg_t) == 4) ;
 
 typedef union {
 	struct {
-		uint8_t		r3 		: 1 ;			// LSB
-		uint8_t		SagWarn	: 1 ;
-		uint8_t		r2		: 3 ;
-		uint8_t		RevPchg	: 1 ;
-		uint8_t		RevQchg	: 1 ;
-		uint8_t		LnChge	: 1 ;
-		uint8_t		r1		: 4 ;
-		uint8_t		AdjErr	: 2 ;
-		uint8_t		CalErr	: 2 ;			// MSB
+		u8_t	r3 		: 1 ;			// LSB
+		u8_t	SagWarn	: 1 ;
+		u8_t	r2		: 3 ;
+		u8_t	RevPchg	: 1 ;
+		u8_t	RevQchg	: 1 ;
+		u8_t	LnChge	: 1 ;
+		u8_t	r1		: 4 ;
+		u8_t	AdjErr	: 2 ;
+		u8_t	CalErr	: 2 ;			// MSB
 	} ;
-	uint16_t	val ;
+	u16_t	val ;
 } m90e26system_stat_t ;
 DUMB_STATIC_ASSERT(sizeof(m90e26system_stat_t) == 2) ;
 
 typedef union {
 	struct {
-		uint8_t		LNMode	: 2 ;			// LCB
-		uint16_t	r1		: 9 ;
-		uint8_t		Line	: 1 ;
-		uint8_t		RevP	: 1 ;
-		uint8_t		RevQ	: 1 ;
-		uint8_t		Pnoload	: 1 ;
-		uint8_t		Qnoload	: 1 ;			// MSB
+		u8_t	LNMode	: 2 ;			// LCB
+		u16_t	r1		: 9 ;
+		u8_t	Line	: 1 ;
+		u8_t	RevP	: 1 ;
+		u8_t	RevQ	: 1 ;
+		u8_t	Pnoload	: 1 ;
+		u8_t	Qnoload	: 1 ;			// MSB
 	} ;
-	uint16_t	val ;
+	u16_t	val ;
 } m90e26meter_stat_t ;
 DUMB_STATIC_ASSERT(sizeof(m90e26meter_stat_t) == 2) ;
 
 typedef union {
 	struct {
-		uint8_t		Pthresh	: 4 ;			// LSB
-		uint8_t		Zxcon	: 2 ;
-		uint8_t		Rmod	: 1 ;
-		uint8_t		Amod	: 1 ;
-		uint8_t		DisHPF	: 2 ;
-		uint8_t		LNSel	: 1 ;
-		uint8_t		Ngain	: 2 ;
-		uint8_t		Lgain	: 3 ;			// MSB
+		u8_t	Pthresh	: 4 ;			// LSB
+		u8_t	Zxcon	: 2 ;
+		u8_t	Rmod	: 1 ;
+		u8_t	Amod	: 1 ;
+		u8_t	DisHPF	: 2 ;
+		u8_t	LNSel	: 1 ;
+		u8_t	Ngain	: 2 ;
+		u8_t	Lgain	: 3 ;			// MSB
 	} ;
-	uint16_t	val ;
+	u16_t	val ;
 } m90e26meter_mode_t;
 DUMB_STATIC_ASSERT(sizeof(m90e26meter_mode_t) == 2) ;
 
 typedef struct __attribute__((packed)) nvs_m90e26_t {
-	uint16_t	calreg[11] ;
-	uint16_t	adjreg[10] ;
-	uint16_t	cfgreg[3] ;
+	u16_t	calreg[11] ;
+	u16_t	adjreg[10] ;
+	u16_t	cfgreg[3] ;
 } nvs_m90e26_t ;
 DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48) ;
 
@@ -230,37 +230,37 @@ DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48) ;
 
 // ####################################### Global functions ########################################
 
-int32_t	m90e26LoadNVSConfig(uint8_t eChan, uint8_t Idx) ;
-void	m90e26WriteRegister(uint8_t eChan, uint8_t Reg, uint16_t Val) ;
+int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) ;
+void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) ;
 
-int32_t	m90e26Identify(uint8_t eDev) ;
-int32_t	m90e26Init(uint8_t eDev) ;
-void	m90e26Calibrate(uint8_t eChan) ;
+int	m90e26Identify(u8_t eDev) ;
+int	m90e26Init(u8_t eDev) ;
+void m90e26Calibrate(u8_t eChan) ;
 
-void	m90e26DataReadAll(uint8_t eChan) ;
-void	m90e26DataConvertAll(uint8_t eChan) ;
+void m90e26DataReadAll(u8_t eChan) ;
+void m90e26DataConvertAll(u8_t eChan) ;
 
-int32_t	m90e26SetLiveGain(uint8_t eChan, uint8_t Gain) ;
-int32_t	m90e26SetNeutralGain(uint8_t eChan, uint8_t Gain) ;
+int	m90e26SetLiveGain(u8_t eChan, u8_t Gain) ;
+int	m90e26SetNeutralGain(u8_t eChan, u8_t Gain) ;
 
-uint16_t m90e26GetSysStatus(uint8_t eChan) ;
-uint16_t m90e26GetMeterStatus(uint8_t eChan) ;
+u16_t m90e26GetSysStatus(u8_t eChan) ;
+u16_t m90e26GetMeterStatus(u8_t eChan) ;
 
-int32_t	m90e26ReadCurrent(epw_t *) ;
-int32_t	m90e26ReadVoltage(epw_t *) ;
-int32_t	m90e26ReadPower(epw_t *) ;
+int	m90e26ReadCurrent(epw_t *) ;
+int	m90e26ReadVoltage(epw_t *) ;
+int	m90e26ReadPower(epw_t *) ;
 
-int32_t	m90e26ReadEnergy(epw_t *) ;
-int32_t	m90e26ReadFrequency(epw_t *) ;
-int32_t	m90e26ReadPowerFactor(epw_t *) ;
-int32_t	m90e26ReadPowerAngle(epw_t *) ;
+int	m90e26ReadEnergy(epw_t *) ;
+int	m90e26ReadFrequency(epw_t *) ;
+int	m90e26ReadPowerFactor(epw_t *) ;
+int	m90e26ReadPowerAngle(epw_t *) ;
 
-int32_t	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax) ;
+int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax) ;
 
-void	m90e26Report(void) ;
-void	m90e26Display(void) ;
-int32_t	m90e26DisplayContrast(uint8_t Contrast) ;
-int32_t	m90e26DisplayState(uint8_t State) ;
+void m90e26Report(void) ;
+void m90e26Display(void) ;
+int	m90e26DisplayContrast(u8_t Contrast) ;
+int	m90e26DisplayState(u8_t State) ;
 
 #ifdef __cplusplus
 }
