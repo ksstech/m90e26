@@ -1,21 +1,20 @@
 /*
- * Copyright 2018-22 (c) Andre M. Maree/KSS Technologies (Pty) Ltd.
+ * m90e26.c
+ * Copyright (c) 2018-22 Andre M. Maree / KSS Technologies (Pty) Ltd.
  */
 
-#include	<string.h>
+#include "m90e26.h"
+#include "options.h"
+#include "FreeRTOS_Support.h"
+#include "ssd1306.h"
+#include "printfx.h"
+#include "syslog.h"
+#include "systiming.h"					// timing debugging
+#include "x_errors_events.h"
+#include "hal_spi.h"
+#include "hal_storage.h"
 
-#include	"m90e26.h"
-#include	"options.h"
-#include	"FreeRTOS_Support.h"
-#include	"ssd1306.h"
-#include	"printfx.h"
-#include	"syslog.h"
-#include	"systiming.h"					// timing debugging
-#include	"x_errors_events.h"
-#include	"hal_spi.h"
-#include	"hal_storage.h"
-
-#include	"nvs.h"
+#include "nvs.h"
 
 #define	debugFLAG					0xF400
 
