@@ -16,19 +16,14 @@
 
 #include "nvs.h"
 
-#define	debugFLAG					0xF400
+#define	debugFLAG					0xF000
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
 #define	debugRMW					(debugFLAG & 0x0004)
-#define	debugINIT					(debugFLAG & 0x0008)
+//#define	debugINIT					(debugFLAG & 0x0008)
 
-#define	debugMODE					(debugFLAG & 0x0010)
 #define	debugCURRENT				(debugFLAG & 0x0020)
-#define	debugENERGY					(debugFLAG & 0x0040)
-#define	debugFACTOR					(debugFLAG & 0x0080)
-
-#define	debugANGLE					(debugFLAG & 0x0100)
 #define	debugPOWER					(debugFLAG & 0x0200)
 
 #define	debugTIMING					(debugFLAG_GLOBAL & debugFLAG & 0x1000)
@@ -163,7 +158,7 @@ void m90e26WriteU16(u8_t eChan, u8_t address, u16_t val) {
 	IF_EXEC_1(debugTIMING, xSysTimerStart, stM90EX6W) ;
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf)) ;
 	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6W) ;
-	xRtosSemaphoreGive(&m90e26mutex[eChan]) ;
+	xRtosSemaphoreGive(&m90e26mutex[eChan]);
 	IF_P(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\r\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]) ;
 }
 
@@ -267,7 +262,7 @@ int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) {
 	} else {
 		SL_ERR("Failed Ch=%d config=%d", eChan, Idx);
 	}
-	free (psCalib) ;
+	vRtosFree (psCalib);
 	return iRV ;
 }
 
@@ -481,8 +476,7 @@ int	m90e26ReadEnergy(epw_t * psEW) {
 		// Update running total in NVS memory
 		sRTCvars.aRTCsum[psEW->eChan][psEW->idx] += f32Val ;
 	} else {						// else it is a value reset call
-		vCV_ResetValue(&psEW->var) ;
-		IF_P(debugENERGY, "Energy: Sum RESET\r\n") ;
+		vCV_ResetValue(&psEW->var);
 	}
 	return erSUCCESS ;
 }
@@ -559,7 +553,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 	u32_t P1 = psRule->para.x32[AI][1].u32;
 	s32_t P2 = psRule->para.x32[AI][2].i32;
 	s32_t P3 = psRule->para.x32[AI][3].i32;
-	IF_P(debugMODE, "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\r\n", P0, P1, P2, P3);
+	IF_P(debugTRACK && ioB1GET(ioMode), "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\r\n", P0, P1, P2, P3);
 	int iRV = erSUCCESS ;
 	do {
 		switch (P1) {
@@ -762,23 +756,24 @@ void m90e26DisplayInfo(u8_t Index) {
 	}
 }
 
+static TickType_t NextTick = 0;
+static u8_t Index = 0;
+
 void m90e26Display(void) {
 	if (m90e26_handle[0] == 0)
 		return;
-	static TickType_t NextTick = 0 ;
-	static u8_t Index = 0 ;
 	TickType_t CurTick = xTaskGetTickCount() ;
 	if (NextTick == 0)
 		NextTick = CurTick ;
 	else if (NextTick > CurTick)
 		return;
-#if 0
+	#if 0
 	if ((Index == 0) && m90e26Config.tBlank) {
 		NextTick = CurTick + pdMS_TO_TICKS(m90e26Config.tBlank * MILLIS_IN_SECOND) ;
 		ssd1306SetDisplayState(0) ;
 		return;
 	}
-#endif
+	#endif
 	//
 	NextTick = CurTick + m90e26STAT_INTVL ;
 	if (m90e26Config.NowContrast > 0)
