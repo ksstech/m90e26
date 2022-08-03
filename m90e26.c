@@ -179,7 +179,7 @@ u16_t m90e26ReadU16(u8_t eChan, u8_t address) {
 }
 
 void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
-	if (INRANGE(PLconstH, Reg, MET_MODE, u8_t)) {
+	if (INRANGE(PLconstH, Reg, MET_MODE)) {
 		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
 			SL_NOT("CALSTART (x20) in wrong state, must be x5678") ;
 		} else {
@@ -189,7 +189,7 @@ void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
 			nvsM90E26default[eChan].calreg[Reg-PLconstH] = Val ;
 			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 		}
-	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N, u8_t)) {
+	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N)) {
 		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
 			SL_NOT("ADJSTART (x30) in wrong state, must be x5678") ;
 		} else {
@@ -199,9 +199,9 @@ void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
 			nvsM90E26default[eChan].adjreg[Reg-U_GAIN] = Val ;
 			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 		}
-	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE, u8_t) || Reg == CALSTART || Reg == ADJSTART) {
+	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE) || Reg == CALSTART || Reg == ADJSTART) {
 		m90e26WriteU16(eChan, Reg, Val) ;				// write new value
-		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE, u8_t)) {
+		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE)) {
 			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 			nvsM90E26default[eChan].cfgreg[Reg-FUNC_ENAB] = Val ;
 			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
@@ -591,7 +591,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			break ;
 
 		case m90e26CALIB_SAVE:
-			if (OUTSIDE(0, P2, CALIB_NUM-1, int))
+			if (OUTSIDE(0, P2, CALIB_NUM-1))
 				return erINVALID_PARA;
 
 			size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
@@ -618,7 +618,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 			break ;
 
 		case m90e26WRITE_REG:
-			if (OUTSIDE(SOFTRESET, P2, CRC_2, int) || OUTSIDE(0, P3, 0xFFFF, int))
+			if (OUTSIDE(SOFTRESET, P2, CRC_2) || OUTSIDE(0, P3, 0xFFFF))
 				return erINVALID_PARA;
 			CmndM90_WriteChannels(Xnow, P2, P3) ;
 			break ;
