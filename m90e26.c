@@ -665,7 +665,7 @@ void m90e26ReportAdjust(void) {
 	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
 		printfx("%2d", eChan) ;
 		for (int i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++))) ;
-		printfx("\r\n") ;
+		printfx(strCRLF) ;
 	}
 }
 
@@ -685,7 +685,7 @@ void m90e26ReportData(void) {
 				printfx("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i])) ;
 			}
 		}
-		printfx("\r\n") ;
+		printfx(strCRLF) ;
 	}
 }
 
@@ -710,7 +710,7 @@ void m90e26ReportStatus(void) {
 		printfx(MeterStatus.LNMode==3 ? "    Flex"	:
 			  MeterStatus.LNMode==2 ? "    Both"	:
 			  MeterStatus.LNMode==1 ? "    Live"	: "  Tamper") ;
-		printfx("\r\n") ;
+		printfx(strCRLF) ;
 	}
 }
 
