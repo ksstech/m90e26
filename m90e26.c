@@ -550,7 +550,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 	u32_t P1 = psRule->para.x32[AI][1].u32;
 	s32_t P2 = psRule->para.x32[AI][2].i32;
 	s32_t P3 = psRule->para.x32[AI][3].i32;
-	IF_P(debugTRACK && ioB1GET(ioMode), "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\r\n", P0, P1, P2, P3);
+	IF_P(debugTRACK && ioB1GET(dbgMode), "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\r\n", P0, P1, P2, P3);
 	int iRV = erSUCCESS ;
 	do {
 		switch (P1) {
