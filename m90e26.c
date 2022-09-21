@@ -241,7 +241,7 @@ u32_t m90e26ReadU32(u8_t eChan, u8_t Reg) {
 	#endif
 }
 
-s32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1 ; }
+i32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1 ; }
 
 int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) {
 	IF_myASSERT(debugPARAM, Idx < CALIB_NUM) ;
@@ -331,9 +331,9 @@ void m90e26PowerOffsetCalcSet(u8_t eChan, u8_t RegPOWER, u8_t RegOFST) {
 	IF_P(debugTRACK && ioB1GET(ioM90offset), "\r\nCh %d:  S=0x%08X  A=0x%08X  O=0x%08X\r\n", eChan, SumOffset, NewAVG, NewOffset) ;
 
 	#elif 0
-	s32_t SumOffset = 0 ;
+	i32_t SumOffset = 0 ;
 	for (int i = 0; i < m90e26CALIB_ITER; ++i) {
-		s32_t CurVal = m90e26ReadI16S(eChan, RegPOWER) ;
+		i32_t CurVal = m90e26ReadI16S(eChan, RegPOWER) ;
 		SumOffset += CurVal ;
 		IF_P(debugTRACK && ioB1GET(ioM90offset), "#%d=%d  ", i, CurVal) ;
 	}
@@ -549,8 +549,8 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 	u8_t AI = psRule->ActIdx;
 	u32_t P0 = psRule->para.x32[AI][0].u32;
 	u32_t P1 = psRule->para.x32[AI][1].u32;
-	s32_t P2 = psRule->para.x32[AI][2].i32;
-	s32_t P3 = psRule->para.x32[AI][3].i32;
+	i32_t P2 = psRule->para.x32[AI][2].i32;
+	i32_t P3 = psRule->para.x32[AI][3].i32;
 	IF_P(debugTRACK && ioB1GET(dbgMode), "m90e26 Idx=%lu  Mode=%lu  p2=%ld  p3=%ld\r\n", P0, P1, P2, P3);
 	int iRV = erSUCCESS ;
 	do {
