@@ -185,9 +185,9 @@ void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_1, m90e26ReadU16(eChan, CRC_1)) ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 			nvsM90E26default[eChan].calreg[Reg-PLconstH] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg) ;
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N)) {
 		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
@@ -195,16 +195,16 @@ void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
 		} else {
 			m90e26WriteU16(eChan, Reg, Val) ;				// write new value & update CRC
 			m90e26WriteU16(eChan, CRC_2, m90e26ReadU16(eChan, CRC_2)) ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 			nvsM90E26default[eChan].adjreg[Reg-U_GAIN] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg) ;
 		}
 	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE) || Reg == CALSTART || Reg == ADJSTART) {
 		m90e26WriteU16(eChan, Reg, Val) ;				// write new value
 		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE)) {
-			IF_P(debugTRACK && ioB1GET(ioM90write), "Before: #%d %-`H\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 			nvsM90E26default[eChan].cfgreg[Reg-FUNC_ENAB] = Val ;
-			IF_P(debugTRACK && ioB1GET(ioM90write), "After : #%d %-`H\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg) ;
 		}
 	} else {
 		SL_ERR("Invalid register=0x%02X", Reg) ;
@@ -312,11 +312,12 @@ void m90e26PowerOffsetCalcSet(u8_t eChan, u8_t RegPOWER, u8_t RegOFST) {
 	for (int i = 0; i < m90e26CALIB_ITER; ++i) {
 		u32_t CurVal = m90e26ReadU32(eChan, RegPOWER) ;
 		SumOffset += CurVal ;
-		IF_P(debugTRACK && ioB1GET(ioM90offset), "#%d=0x%04X  ", i, CurVal) ;
+		IF_P(debugTRACK && ioB1GET(ioM90offset), "#%d=0x%04lX  ", i, CurVal) ;
 	}
 	u32_t NewAVG	= SumOffset / m90e26CALIB_ITER ;
 	u32_t NewOffset = (~NewAVG + 1) >> 16 ;
-	IF_P(debugTRACK && ioB1GET(ioM90offset), "\r\nCh %d:  S=0x%010llX  A=0x%08X  O=0x%08X\r\n", eChan, SumOffset, NewAVG, NewOffset) ;
+	IF_P(debugTRACK && ioB1GET(ioM90offset), "\r\nCh %d:  S=0x%010llX  A=0x%08lX  O=0x%08lX\r\n",
+															eChan, SumOffset, NewAVG, NewOffset);
 
 	#elif 0
 	u32_t SumOffset = 0 ;
@@ -350,7 +351,7 @@ void m90e26CurrentOffsetCalcSet(u8_t eChan, u8_t RegRMS, u8_t RegGAIN, u8_t RegO
 	u32_t Factor1 = CurAmps * CurGain >> 8 ;
 	u32_t Factor2 = ~Factor1 + 1 ;
 	m90e26WriteRegister(eChan, RegOFST, Factor2) ;
-	IF_P(debugTRACK && ioB1GET(ioM90offset), "Ch %d %s: Icur=0x%04X  Gcur=0x%04X  F1=0x%08X  F2=0x%08X\r\n",
+	IF_P(debugTRACK && ioB1GET(ioM90offset), "Ch %d %s: Icur=0x%04lX  Gcur=0x%04lX  F1=0x%08lX  F2=0x%08lX\r\n",
 			eChan, RegRMS == I_RMS_L ? "Live" : "Neutral", CurAmps, CurGain, Factor1, Factor2) ;
 }
 
@@ -550,7 +551,7 @@ int	m90e26ConfigMode(rule_t * psRule, int Xnow, int Xmax) {
 	u32_t P1 = psRule->para.x32[AI][1].u32;
 	s32_t P2 = psRule->para.x32[AI][2].i32;
 	s32_t P3 = psRule->para.x32[AI][3].i32;
-	IF_P(debugTRACK && ioB1GET(dbgMode), "m90e26 Idx=%d  Mode=%d  p2=%d p3=%d\r\n", P0, P1, P2, P3);
+	IF_P(debugTRACK && ioB1GET(dbgMode), "m90e26 Idx=%lu  Mode=%lu  p2=%ld  p3=%ld\r\n", P0, P1, P2, P3);
 	int iRV = erSUCCESS ;
 	do {
 		switch (P1) {
@@ -800,7 +801,7 @@ u16_t m90e26CalcCRC(u8_t eChan, u8_t Addr0, int8_t Count) {
 		Lcrc += RegData[i] & 0xFF ;
 		Hcrc ^= RegData[i] & 0xFF ;
 	}
-	IF_P(debugCRC, "CRC=%04x from %-`h\r\n", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
+	IF_P(debugCRC, "CRC=%04x from %-'h\r\n", (Hcrc << 8) | Lcrc, Count * 2, RegData) ;
 	return (Hcrc << 8) | Lcrc ;
 }
 
