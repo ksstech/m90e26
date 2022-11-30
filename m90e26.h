@@ -4,8 +4,9 @@
 
 #pragma		once
 
-#include	"hal_variables.h"	// hal_config sdk_config esp_err definitions
-#include	"rules_engine.h"
+#include "definitions.h"
+#include "endpoints.h"
+#include "rules_engine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,13 @@ extern "C" {
 
 // ##################################### BUILD definitions #########################################
 
+#define	m90e26NEUTRAL				0
+
+#define	m90e26VSPI_CS1				GPIO_NUM_5			// D8
+#define	m90e26VSPI_CS2				GPIO_NUM_17			// D3
+#define	m90e26VSPI_SCLK				GPIO_NUM_18
+#define	m90e26VSPI_MISO				GPIO_NUM_19
+#define	m90e26VSPI_MOSI				GPIO_NUM_23
 
 // ############################################# Macros ############################################
 
@@ -95,7 +103,7 @@ extern "C" {
 
 // ######################################## Enumerations ###########################################
 
-enum {													// configuration registers
+enum {								// configuration registers
 	eCALSTART,
 	ePLconstH,
 	ePLconstL,
@@ -111,7 +119,7 @@ enum {													// configuration registers
 	eCRC_1,
 } ;
 
-enum {													// sensor data registers
+enum {								// sensor data registers
 // Energy
  	eE_ACT_FWD,
  	eE_ACT_REV,
@@ -129,7 +137,7 @@ enum {													// sensor data registers
  	eP_ANGLE_L,
  	eP_APP_L,
 
-#if		(m90e26NEUTRAL > 0)								// Neutral Line
+#if		(m90e26NEUTRAL > 0)			// Neutral Line
  	eI_RMS_N,
  	eP_ACT_N,
  	eP_REACT_N,
@@ -140,12 +148,12 @@ enum {													// sensor data registers
 	eNUM_DATA_REG
  } ;
 
-enum {													// supported mode options
+enum {								// supported mode options
 	eINVALID,
-	eL_GAIN,											// 1, 4, 8, 16, 24
-	eN_GAIN,											// 1, 2, 4
-	eSOFTRESET,											// reset only
-	eRECALIB,											// reset & recalibrate
+	eL_GAIN,						// 1, 4, 8, 16, 24
+	eN_GAIN,						// 1, 2, 4
+	eSOFTRESET,						// reset only
+	eRECALIB,						// reset & recalibrate
 	m90e26CALC_CUR_OFST,
 	m90e26CALC_PWR_OFST,
 	m90e26CALIB_SAVE,
@@ -155,8 +163,8 @@ enum {													// supported mode options
 
 enum display_mode {
 	eDM_DISABLED,
-	eDM_NORMAL,											// always on, cycle through, step contrast
-	eDM_CURRENT,										// if current != 0, then include
+	eDM_NORMAL,						// always on, cycle through, step contrast
+	eDM_CURRENT,					// if current != 0, then include
 	eDM_BUTTON,
 	eDM_MAXIMUM,
 } ;
@@ -232,6 +240,7 @@ DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48) ;
 int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) ;
 void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) ;
 
+int m90e26Config(void);
 int	m90e26Identify(u8_t eDev) ;
 int	m90e26Init(u8_t eDev) ;
 void m90e26Calibrate(u8_t eChan) ;
@@ -245,16 +254,15 @@ int	m90e26SetNeutralGain(u8_t eChan, u8_t Gain) ;
 u16_t m90e26GetSysStatus(u8_t eChan) ;
 u16_t m90e26GetMeterStatus(u8_t eChan) ;
 
-int	m90e26ReadCurrent(epw_t *) ;
-int	m90e26ReadVoltage(epw_t *) ;
-int	m90e26ReadPower(epw_t *) ;
+int	m90e26ReadCurrent(epw_t *);
+int	m90e26ReadVoltage(epw_t *);
+int	m90e26ReadPower(epw_t *);
+int	m90e26ReadEnergy(epw_t *);
+int	m90e26ReadFrequency(epw_t *);
+int	m90e26ReadPowerFactor(epw_t *);
+int	m90e26ReadPowerAngle(epw_t *);
 
-int	m90e26ReadEnergy(epw_t *) ;
-int	m90e26ReadFrequency(epw_t *) ;
-int	m90e26ReadPowerFactor(epw_t *) ;
-int	m90e26ReadPowerAngle(epw_t *) ;
-
-int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax) ;
+int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
 
 void m90e26Report(void) ;
 void m90e26Display(void) ;

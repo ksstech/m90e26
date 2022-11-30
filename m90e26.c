@@ -4,15 +4,15 @@
  */
 
 #include "m90e26.h"
-#include "options.h"
+#include "hal_variables.h"
+#include "hal_spi.h"
+#include "hal_storage.h"
 #include "FreeRTOS_Support.h"
 #include "ssd1306.h"
 #include "printfx.h"
 #include "syslog.h"
 #include "systiming.h"					// timing debugging
 #include "x_errors_events.h"
-#include "hal_spi.h"
-#include "hal_storage.h"
 
 #include "nvs.h"
 
@@ -33,14 +33,15 @@
 
 // ###################################### BUILD Macros #############################################
 
-#if		(m90e26NEUTRAL > 0)
-	#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
-	#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
+#if (m90e26NEUTRAL > 0)
+	#define	M90E26_NUMURI_0			(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#define	M90E26_NUMURI_1			(URI_M90E26_P_APP_N_1 - URI_M90E26_E_ACT_FWD_1 + 1)
 #else
-	#define	M90E26_NUMURI_0		(URI_M90E26_P_APP_L_0 - URI_M90E26_E_ACT_FWD_0 + 1)
-	#define	M90E26_NUMURI_1		(URI_M90E26_P_APP_L_1 - URI_M90E26_E_ACT_FWD_1 + 1)
+	#define	M90E26_NUMURI_0			(URI_M90E26_P_APP_L_0 - URI_M90E26_E_ACT_FWD_0 + 1)
+	#define	M90E26_NUMURI_1			(URI_M90E26_P_APP_L_1 - URI_M90E26_E_ACT_FWD_1 + 1)
 #endif
-#if		(M90E26_NUMURI_0 != M90E26_NUMURI_1)
+
+#if (M90E26_NUMURI_0 != M90E26_NUMURI_1)
 	#error	"error in m90e26 URI definitions!!!"
 #endif
 
@@ -102,7 +103,7 @@ struct __attribute__((packed)) {
 		u8_t	N_Gain	: 3 ;							// 1 -> 4
 		u8_t	L_Gain	: 5 ;							// 1 -> 24
 	} Chan[halHAS_M90E26] ;
-} m90e26Config = { 0 } ;
+} m90e26Cfg = { 0 } ;
 
 const u8_t	m90e26RegAddr[] = {
 	E_ACT_FWD,	E_ACT_REV,	E_ACT_ABS,					// Active energy
@@ -357,6 +358,27 @@ void m90e26CurrentOffsetCalcSet(u8_t eChan, u8_t RegRMS, u8_t RegGAIN, u8_t RegO
 
 // ############################## identification & initialization ##################################
 
+int m90e26Config(void) {
+	const spi_bus_config_t buscfg = {
+		.mosi_io_num	= m90e26VSPI_MOSI,
+		.miso_io_num	= m90e26VSPI_MISO,
+		.sclk_io_num	= m90e26VSPI_SCLK,
+		.quadwp_io_num	= -1,
+		.quadhd_io_num	= -1,
+		.max_transfer_sz = 128,
+		.flags = 0
+	};
+	ESP_ERROR_CHECK(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH1));
+
+	for (s8_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
+		if ((m90e26Identify(eChan) != erSUCCESS) || (m90e26Init(eChan) != erSUCCESS)) {
+			SL_ERR("Failed to identify/init #%d", eChan);
+			return erFAILURE;
+		}
+	}
+	return erSUCCESS;
+}
+
 int	m90e26Identify(u8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
@@ -402,13 +424,13 @@ int	m90e26Init(u8_t eChan) {
 
 	m90e26WriteU16(eChan, SOFTRESET, CODE_RESET) ;		// start with default values, not running, no valid values
 	m90e26LoadNVSConfig(eChan, 0) ;						// load config #0 from NVS blob as default
-	m90e26Config.Chan[eChan].L_Gain		= 1 ;			// set default state
+	m90e26Cfg.Chan[eChan].L_Gain		= 1 ;			// set default state
 	#if	(m90e26NEUTRAL > 0)
-	m90e26Config.Chan[eChan].N_Gain		= 1 ;
+	m90e26Cfg.Chan[eChan].N_Gain		= 1 ;
 	#endif
-	m90e26Config.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
-	m90e26Config.Chan[eChan].P_Scale	= 0 ;			// W not kW
-	m90e26Config.Chan[eChan].I_Scale	= 0 ;			// A not mA
+	m90e26Cfg.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
+	m90e26Cfg.Chan[eChan].P_Scale	= 0 ;			// W not kW
+	m90e26Cfg.Chan[eChan].I_Scale	= 0 ;			// A not mA
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
 }
 
@@ -418,7 +440,7 @@ int	m90e26ReadCurrent(epw_t * psEW) {
 	u8_t eIdx = m90e26CalcInfo(psEW) ;
 	float f32Val = (float) m90e26ReadU32(psEW->eChan, m90e26RegAddr[eIdx]) ;
 	IF_P(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEW->uri, eIdx, m90e26RegAddr[eIdx], psEW->eChan) ;
-	if (m90e26Config.Chan[psEW->eChan].I_Scale == 0) {
+	if (m90e26Cfg.Chan[psEW->eChan].I_Scale == 0) {
 		f32Val /= 65536000.0 ;							// convert to Amp
 		IF_P(debugCURRENT, "  Val=%4.5fA", f32Val) ;
 	} else {
@@ -429,16 +451,16 @@ int	m90e26ReadCurrent(epw_t * psEW) {
 	#if	(m90e26NEUTRAL > 0)
 	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L || eIdx == eI_RMS_N) ;
 	if (eIdx == eI_RMS_L) {
-		f32Val /= m90e26Config.Chan[psEW->eChan].L_Gain ;
-		IF_P(debugCURRENT, "  Lgain=%d", m90e26Config.Chan[psEW->eChan].L_Gain) ;
+		f32Val /= m90e26Cfg.Chan[psEW->eChan].L_Gain ;
+		IF_P(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain) ;
 	} else {
-		f32Val /= m90e26Config.Chan[psEW->eChan].N_Gain ;
-		IF_P(debugCURRENT, "  Ngain=%d", m90e26Config.Chan[psEW->eChan].N_Gain) ;
+		f32Val /= m90e26Cfg.Chan[psEW->eChan].N_Gain ;
+		IF_P(debugCURRENT, "  Ngain=%d", m90e26Cfg.Chan[psEW->eChan].N_Gain) ;
 	}
 	#else
 	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L) ;
-	f32Val /= m90e26Config.Chan[psEW->eChan].L_Gain ;
-	IF_P(debugCURRENT, "  Lgain=%d", m90e26Config.Chan[psEW->eChan].L_Gain) ;
+	f32Val /= m90e26Cfg.Chan[psEW->eChan].L_Gain ;
+	IF_P(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain) ;
 	#endif
 	IF_P(debugCURRENT, "  Act=%4.5f\r\n", f32Val) ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
@@ -457,7 +479,7 @@ int	m90e26ReadVoltage(epw_t * psEW) {		// OK
 int	m90e26ReadPower(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float	f32Val	= (float) m90e26ReadI32TC(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
-	f32Val /= (m90e26Config.Chan[psEW->eChan].P_Scale == 1) ? 65536000.0 : 65536.0 ;
+	f32Val /= (m90e26Cfg.Chan[psEW->eChan].P_Scale == 1) ? 65536000.0 : 65536.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	IF_P(debugPOWER, "Power: Ch=%d  Reg=0x%02X  Val=%9.3f\r\n", psEW->eChan, m90e26RegAddr[psEW->idx], f32Val) ;
 	return erSUCCESS ;
@@ -469,7 +491,7 @@ int	m90e26ReadEnergy(epw_t * psEW) {
 	if (psEW->var.def.cv.sumX) {	// if just a normal update cycle
 		m90e26CalcInfo(psEW) ;
 		float f32Val	= (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
-		f32Val	/= m90e26Config.Chan[psEW->eChan].E_Scale ? 10000.0 : 10.0 ;
+		f32Val	/= m90e26Cfg.Chan[psEW->eChan].E_Scale ? 10000.0 : 10.0 ;
 		xEpSetValue(psEW, (x32_t) f32Val) ;
 		// Update running total in NVS memory
 		sRTCvars.aRTCsum[psEW->eChan][psEW->idx] += f32Val ;
@@ -507,11 +529,11 @@ inline u16_t m90e26GetMeterStatus(u8_t eChan)	{ return m90e26ReadU16(eChan, MET_
 int	m90e26SetLiveGain(u8_t eChan, u8_t Gain) {
 	u16_t	NewValue ;
 	switch (Gain) {
-	case 1:		NewValue	= 0x8000 ;		m90e26Config.Chan[eChan].L_Gain	= 1 ;	break ;
-	case 4:		NewValue	= 0x0000 ;		m90e26Config.Chan[eChan].L_Gain	= 4 ;	break ;
-	case 8:		NewValue	= 0x2000 ;		m90e26Config.Chan[eChan].L_Gain	= 8 ;	break ;
-	case 16:	NewValue	= 0x4000 ;		m90e26Config.Chan[eChan].L_Gain	= 16 ;	break ;
-	case 24:	NewValue	= 0x6000 ;		m90e26Config.Chan[eChan].L_Gain	= 24 ;	break ;
+	case 1:		NewValue	= 0x8000 ;		m90e26Cfg.Chan[eChan].L_Gain	= 1 ;	break ;
+	case 4:		NewValue	= 0x0000 ;		m90e26Cfg.Chan[eChan].L_Gain	= 4 ;	break ;
+	case 8:		NewValue	= 0x2000 ;		m90e26Cfg.Chan[eChan].L_Gain	= 8 ;	break ;
+	case 16:	NewValue	= 0x4000 ;		m90e26Cfg.Chan[eChan].L_Gain	= 16 ;	break ;
+	case 24:	NewValue	= 0x6000 ;		m90e26Cfg.Chan[eChan].L_Gain	= 24 ;	break ;
 	default:
 		IF_SL_ERR(debugPARAM, "Invalid Live Gain =%d", Gain) ;
 		return erINV_PARA ;
@@ -523,9 +545,9 @@ int	m90e26SetLiveGain(u8_t eChan, u8_t Gain) {
 int	m90e26SetNeutralGain(u8_t eChan, u8_t Gain) {
 	u16_t	NewValue ;
 	switch (Gain) {
-	case 1:		NewValue	= 0x1000 ;		m90e26Config.Chan[eChan].N_Gain = 1 ;	break ;
-	case 2:		NewValue	= 0x0000 ;		m90e26Config.Chan[eChan].N_Gain = 2 ;	break ;
-	case 4:		NewValue	= 0x0800 ;		m90e26Config.Chan[eChan].N_Gain = 4 ;	break ;
+	case 1:		NewValue	= 0x1000 ;		m90e26Cfg.Chan[eChan].N_Gain = 1 ;	break ;
+	case 2:		NewValue	= 0x0000 ;		m90e26Cfg.Chan[eChan].N_Gain = 2 ;	break ;
+	case 4:		NewValue	= 0x0800 ;		m90e26Cfg.Chan[eChan].N_Gain = 4 ;	break ;
 	default:
 		IF_SL_ERR(debugPARAM, "Invalid Neutral Gain =%d", Gain) ;
 		return erINV_PARA ;
@@ -766,15 +788,15 @@ void m90e26Display(void) {
 	else if (NextTick > CurTick)
 		return;
 	#if 0
-	if ((Index == 0) && m90e26Config.tBlank) {
-		NextTick = CurTick + pdMS_TO_TICKS(m90e26Config.tBlank * MILLIS_IN_SECOND) ;
+	if ((Index == 0) && m90e26Cfg.tBlank) {
+		NextTick = CurTick + pdMS_TO_TICKS(m90e26Cfg.tBlank * MILLIS_IN_SECOND) ;
 		ssd1306SetDisplayState(0) ;
 		return;
 	}
 	#endif
 	//
 	NextTick = CurTick + m90e26STAT_INTVL ;
-	if (m90e26Config.NowContrast > 0)
+	if (m90e26Cfg.NowContrast > 0)
 		m90e26DisplayInfo(Index) ;
 	else
 		ssd1306SetDisplayState(0);
@@ -782,7 +804,7 @@ void m90e26Display(void) {
 	++Index ;
 	Index %= (NumM90E26 * 2) ;
 	if (Index == 0)
-		m90e26Config.NowContrast = ssd1306SetContrast(m90e26Config.NowContrast + m90e26STEP_CONTRAST);
+		m90e26Cfg.NowContrast = ssd1306SetContrast(m90e26Cfg.NowContrast + m90e26STEP_CONTRAST);
 }
 
 /* ################################### OLD CODE #####################################
