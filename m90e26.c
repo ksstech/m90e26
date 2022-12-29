@@ -583,24 +583,13 @@ void m90e26Display(void) {
 		NextTick = CurTick ;
 	else if (NextTick > CurTick)
 		return;
-	#if 0
-	if ((Index == 0) && m90e26Cfg.tBlank) {
-		NextTick = CurTick + pdMS_TO_TICKS(m90e26Cfg.tBlank * MILLIS_IN_SECOND) ;
-		ssd1306SetDisplayState(0) ;
-		return;
-	}
-	#endif
-	//
 	NextTick = CurTick + m90e26STAT_INTVL ;
-	if (m90e26Cfg.NowContrast > 0)
-		m90e26DisplayInfo(Index) ;
-	else
-		ssd1306SetDisplayState(0);
-	//
+	if (ssd1306GetDisplayState())
+		m90e26DisplayInfo(Index);
 	++Index ;
 	Index %= (NumM90E26 * 2) ;
 	if (Index == 0)
-		m90e26Cfg.NowContrast = ssd1306SetContrast(m90e26Cfg.NowContrast + m90e26STEP_CONTRAST);
+		ssd1306StepContrast(m90e26STEP_CONTRAST);
 }
 
 #endif	// halHAS_M90E26 halHAS_SSD1306
