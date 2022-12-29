@@ -546,7 +546,8 @@ void m90e26DisplayInfo(u8_t Index) {
 	ssd1306SetDisplayState(1) ;
 	ssd1306SetTextCursor(0, 0) ;
 	if ((Index % 2) == 0) {
-		devprintfx(ssd1306PutChar, "Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
+		snprintfx(DispBuf, sizeof(DispBuf),
+		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
 		xCV_GetValueScaled(&psEW[eVOLTS].var, NULL),
 		xCV_GetValueScaled(&psEW[eFREQ].var, NULL),
 		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
@@ -554,7 +555,8 @@ void m90e26DisplayInfo(u8_t Index) {
 		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
 		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL)) ;
 	} else {
-		devprintfx(ssd1306PutChar, "Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
+		snprintfx(DispBuf, sizeof(DispBuf),
+		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
 		xCV_GetValueScaled(&psEW[eE_ACT_FWD].var, NULL),
 		xCV_GetValueScaled(&psEW[eE_ACT_REV].var, NULL),
 		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
@@ -562,6 +564,7 @@ void m90e26DisplayInfo(u8_t Index) {
 		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
 		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL)) ;
 	}
+	pReqBuf = DispBuf;
 }
 
 static TickType_t NextTick = 0;
