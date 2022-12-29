@@ -91,7 +91,7 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 
 spi_device_handle_t	m90e26_handle[halHAS_M90E26];
 SemaphoreHandle_t	m90e26mutex[halHAS_M90E26];
-u8_t	NumM90E26 = halHAS_M90E26;
+u8_t NumM90E26 = halHAS_M90E26;
 
 const u8_t	m90e26RegAddr[] = {
 	E_ACT_FWD,	E_ACT_REV,	E_ACT_ABS,					// Active energy
