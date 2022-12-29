@@ -8,6 +8,8 @@
 #include "endpoints.h"
 #include "rules.h"
 
+#include "hal_gpio.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
