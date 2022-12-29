@@ -3,12 +3,13 @@
  * Copyright (c) 2018-22 Andre M. Maree / KSS Technologies (Pty) Ltd.
  */
 
+#include "main.h"
+
+#if (halHAS_M90E26 > 0)
 #include "m90e26.h"
-#include "hal_variables.h"
 #include "hal_spi.h"
 #include "hal_storage.h"
 #include "FreeRTOS_Support.h"
-#include "ssd1306.h"
 #include "printfx.h"
 #include "syslog.h"
 #include "systiming.h"					// timing debugging
@@ -16,22 +17,22 @@
 
 #include "nvs.h"
 
+// ######################################## Build macros ###########################################
+
 #define	debugFLAG					0xF000
 
 #define	debugREAD					(debugFLAG & 0x0001)
 #define	debugWRITE					(debugFLAG & 0x0002)
 #define	debugRMW					(debugFLAG & 0x0004)
-//#define	debugINIT					(debugFLAG & 0x0008)
-
-#define	debugCURRENT				(debugFLAG & 0x0020)
-#define	debugPOWER					(debugFLAG & 0x0200)
+#define	debugCURRENT				(debugFLAG & 0x0008)
+#define	debugPOWER					(debugFLAG & 0x0010)
 
 #define	debugTIMING					(debugFLAG_GLOBAL & debugFLAG & 0x1000)
 #define	debugTRACK					(debugFLAG_GLOBAL & debugFLAG & 0x2000)
 #define	debugPARAM					(debugFLAG_GLOBAL & debugFLAG & 0x4000)
 #define	debugRESULT					(debugFLAG_GLOBAL & debugFLAG & 0x8000)
 
-// ###################################### BUILD Macros #############################################
+// ########################################### Macros ##############################################
 
 #if (m90e26NEUTRAL > 0)
 	#define	M90E26_NUMURI_0			(URI_M90E26_P_APP_N_0 - URI_M90E26_E_ACT_FWD_0 + 1)
