@@ -543,8 +543,6 @@ void m90e26DisplayInfo(u8_t Index) {
 	#else
 	psEW = &table_work[URI_M90E26_E_ACT_FWD_0] ;
 	#endif
-	ssd1306SetDisplayState(1) ;
-	ssd1306SetTextCursor(0, 0) ;
 	if ((Index % 2) == 0) {
 		snprintfx(DispBuf, sizeof(DispBuf),
 		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
