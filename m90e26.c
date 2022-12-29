@@ -558,10 +558,6 @@ int	m90e26SetNeutralGain(u8_t eChan, u8_t Gain) {
 
 // ############################### dynamic configuration support ###################################
 
-int	m90e26DisplayContrast(u8_t Contrast) { ssd1306SetContrast(Contrast) ; return erSUCCESS ; }
-
-int	m90e26DisplayState(u8_t State) { ssd1306SetDisplayState(State) ; return erSUCCESS ; }
-
 /**
  * Configure device functionality
  * @brief	mode /m90e26 ch# option [para1 [para2 [para3]]]

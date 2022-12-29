@@ -266,8 +266,6 @@ int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
 
 void m90e26Report(void) ;
 void m90e26Display(void) ;
-int	m90e26DisplayContrast(u8_t Contrast) ;
-int	m90e26DisplayState(u8_t State) ;
 
 #ifdef __cplusplus
 }
