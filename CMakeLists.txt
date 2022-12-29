@@ -3,9 +3,12 @@
 set( srcs "m90e26.c" )
 set( include_dirs "." )
 set( priv_include_dirs )
-set( requires common hal_esp32 nvs_flash rules ssd1306 )
-set( priv_requires printfx rtos-support syslog systiming )
-
+set( requires 
+	common hal_esp32 nvs_flash rules ssd1306 
+)
+set( priv_requires 
+	gui_basic main printfx rtos-support syslog systiming 
+)
 idf_component_register(
 	SRCS ${srcs} 
 	INCLUDE_DIRS ${include_dirs} 
