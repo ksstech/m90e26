@@ -93,19 +93,6 @@ spi_device_handle_t	m90e26_handle[halHAS_M90E26];
 SemaphoreHandle_t	m90e26mutex[halHAS_M90E26];
 u8_t	NumM90E26 = halHAS_M90E26;
 
-struct __attribute__((packed)) {
-	u8_t	NowContrast ;
-	struct __attribute__((packed)) {
-		u8_t	E_Scale	: 1 ;							// 0 = WHr,	1 = KwHr
-		u8_t	P_Scale	: 1 ;							// 0 = W,	1 = Kw
-		u8_t	I_Scale	: 1 ;							// 0 = A,	1 = KwHr
-		u8_t	Display	: 2 ;							// 0 = Off, 1 = Normal,	2 = Current, 3 = Button
-		u8_t	Spare	: 3 ;
-		u8_t	N_Gain	: 3 ;							// 1 -> 4
-		u8_t	L_Gain	: 5 ;							// 1 -> 24
-	} Chan[halHAS_M90E26] ;
-} m90e26Cfg = { 0 } ;
-
 const u8_t	m90e26RegAddr[] = {
 	E_ACT_FWD,	E_ACT_REV,	E_ACT_ABS,					// Active energy
 	E_REACT_FWD,E_REACT_REV,E_REACT_ABS,				// ReActive energy
