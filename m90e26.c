@@ -93,6 +93,8 @@ spi_device_handle_t	m90e26_handle[halHAS_M90E26];
 SemaphoreHandle_t	m90e26mutex[halHAS_M90E26];
 u8_t NumM90E26 = halHAS_M90E26;
 
+struct m90e26cfg_s m90e26Cfg = { 0 };
+
 const u8_t	m90e26RegAddr[] = {
 	E_ACT_FWD,	E_ACT_REV,	E_ACT_ABS,					// Active energy
 	E_REACT_FWD,E_REACT_REV,E_REACT_ABS,				// ReActive energy
@@ -531,6 +533,11 @@ void m90e26Report(void) {
 	m90e26ReportData() ;
 	m90e26ReportStatus() ;
 }
+#endif
+
+#if (halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
+
+#include "gui_main.h"
 
 #define	m90e26STEP_CONTRAST		0x04
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
@@ -595,6 +602,8 @@ void m90e26Display(void) {
 	if (Index == 0)
 		m90e26Cfg.NowContrast = ssd1306SetContrast(m90e26Cfg.NowContrast + m90e26STEP_CONTRAST);
 }
+
+#endif	// halHAS_M90E26 halHAS_SSD1306
 
 /* ################################### OLD CODE #####################################
 
