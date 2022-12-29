@@ -536,7 +536,7 @@ void m90e26Report(void) {
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
 
 void m90e26DisplayInfo(u8_t Index) {
-	static	epw_t * psEW ;
+	epw_t * psEW ;
 	#if	(halHAS_M90E26 == 2)
 	u8_t eChan = Index / NumM90E26 ;
 	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
