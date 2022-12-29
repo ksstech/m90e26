@@ -248,9 +248,6 @@ void m90e26Calibrate(u8_t eChan) ;
 void m90e26DataReadAll(u8_t eChan) ;
 void m90e26DataConvertAll(u8_t eChan) ;
 
-int	m90e26SetLiveGain(u8_t eChan, u8_t Gain) ;
-int	m90e26SetNeutralGain(u8_t eChan, u8_t Gain) ;
-
 u16_t m90e26GetSysStatus(u8_t eChan) ;
 u16_t m90e26GetMeterStatus(u8_t eChan) ;
 
