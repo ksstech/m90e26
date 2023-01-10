@@ -287,7 +287,6 @@ int	m90e26ReadPowerAngle(epw_t *);
 int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
 
 void m90e26Report(void);
-void m90e26Display(void);
 
 #ifdef __cplusplus
 }

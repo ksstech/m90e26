@@ -17,6 +17,10 @@
 
 #include "nvs.h"
 
+#if (halHAS_SSD1306 > 0)
+	#include "gui_main.h"
+#endif
+
 // ######################################## Build macros ###########################################
 
 #define	debugFLAG					0xF000
@@ -47,6 +51,9 @@
 #endif
 
 #define	M90E26_T_SNS				1000
+
+
+void m90e26GuiTimerHandler(TimerHandle_t);
 
 // ###################################### Private variables #######################################
 
@@ -121,7 +128,7 @@ const u8_t	m90e26RegAddr[] = {
  *		0x00B9, 0xC1F3, 0xD139, 0x0000, 0x0000, 0x0000, 0x08BD, 0x0000, 0x0AEC, 0x0000, 0x9422 },
  *		0xD464, 0x6E49, 0x7530, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
  */
-nvs_m90e26_t	nvsM90E26default[halHAS_M90E26] = {
+nvs_m90e26_t nvsM90E26default[halHAS_M90E26] = {
 	#if	(halHAS_M90E26 > 0)
 	{ {	0x00B9, 0xC1F3, 0x0000, 0x0000, 0x0000, 0x0000, 0x08BD, 0x8100, 0x0AEC, 0x8100, 0x9422 },
 	  {	0x6C50, 0x7C2A, 0x7530, 0x0000, 0xF711, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
@@ -133,6 +140,18 @@ nvs_m90e26_t	nvsM90E26default[halHAS_M90E26] = {
   	  {	0x0030, 0x1F2F, 0x0000	}, },
 	#endif
 };
+
+#if (halHAS_SSD1306 > 0)
+
+#define	m90e26STEP_CONTRAST		0x04
+#define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
+
+static TickType_t NextTick = 0;
+static u8_t Index = 0;
+static TimerHandle_t m90e26TH = { 0 };
+static StaticTimer_t m90e26TS = { 0 };
+
+#endif
 
 // ############################### common support routines #########################################
 
@@ -337,15 +356,23 @@ int	m90e26Init(u8_t eChan) {
 	vRtosFree(psCalib) ;
 
 	m90e26WriteU16(eChan, SOFTRESET, CODE_RESET) ;		// start with default values, not running, no valid values
-	m90e26LoadNVSConfig(eChan, 0) ;						// load config #0 from NVS blob as default
-	m90e26Cfg.Chan[eChan].L_Gain		= 1 ;			// set default state
+	m90e26LoadNVSConfig(eChan, 0);						// load config #0 from NVS blob as default
+	m90e26Cfg.Chan[eChan].L_Gain = 1;					// set default state
 	#if	(m90e26NEUTRAL > 0)
-	m90e26Cfg.Chan[eChan].N_Gain		= 1 ;
+	m90e26Cfg.Chan[eChan].N_Gain = 1;
 	#endif
-	m90e26Cfg.Chan[eChan].E_Scale	= 0 ;			// Wh not kWh
-	m90e26Cfg.Chan[eChan].P_Scale	= 0 ;			// W not kW
-	m90e26Cfg.Chan[eChan].I_Scale	= 0 ;			// A not mA
-	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS ;
+	m90e26Cfg.Chan[eChan].E_Scale = 0;					// Wh not kWh
+	m90e26Cfg.Chan[eChan].P_Scale = 0;					// W not kW
+	m90e26Cfg.Chan[eChan].I_Scale = 0;					// A not mA
+#if (halHAS_SSD1306 > 0)
+	if (m90e26TH == NULL) {
+		m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
+		IF_myASSERT(debugRESULT, m90e26TH != 0);
+		iRV = xTimerStart(m90e26TH, 0);
+		IF_myASSERT(debugRESULT, iRV != pdFAIL);
+	}
+#endif
+	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS;
 }
 
 // ########################### 32 bit value endpoint support functions #############################
@@ -533,23 +560,19 @@ void m90e26Report(void) {
 	m90e26ReportData() ;
 	m90e26ReportStatus() ;
 }
-#endif
 
-#if (halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
+// ############################################ GUI Support ########################################
 
-#include "gui_main.h"
+#if (halHAS_SSD1306 > 0)
 
-#define	m90e26STEP_CONTRAST		0x04
-#define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
-
-void m90e26DisplayInfo(u8_t Index) {
+void m90e26GuiUpdateInfo(u8_t Index) {
 	epw_t * psEW ;
-	#if	(halHAS_M90E26 == 2)
+#if	(halHAS_M90E26 == 2)
 	u8_t eChan = Index / NumM90E26 ;
 	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
-	#else
+#else
 	psEW = &table_work[URI_M90E26_E_ACT_FWD_0] ;
-	#endif
+#endif
 	if ((Index % 2) == 0) {
 		snprintfx(DispBuf, sizeof(DispBuf),
 		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
@@ -558,7 +581,7 @@ void m90e26DisplayInfo(u8_t Index) {
 		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
 		xCV_GetValueScaled(&psEW[eP_ACT_L].var, NULL),
 		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL)) ;
+		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL));
 	} else {
 		snprintfx(DispBuf, sizeof(DispBuf),
 		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
@@ -567,32 +590,31 @@ void m90e26DisplayInfo(u8_t Index) {
 		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
 		xCV_GetValueScaled(&psEW[eE_REACT_FWD].var, NULL),
 		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL)) ;
+		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL));
 	}
-	pReqBuf = DispBuf;
+	pReqBuf = DispBuf;				// enable next text display
 }
 
-static TickType_t NextTick = 0;
-static u8_t Index = 0;
-
-void m90e26Display(void) {
+void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	if (m90e26_handle[0] == 0)
 		return;
-	TickType_t CurTick = xTaskGetTickCount() ;
+	TickType_t CurTick = xTaskGetTickCount();
 	if (NextTick == 0)
-		NextTick = CurTick ;
+		NextTick = CurTick;
 	else if (NextTick > CurTick)
 		return;
-	NextTick = CurTick + m90e26STAT_INTVL ;
-	if (ssd1306GetDisplayState())
-		m90e26DisplayInfo(Index);
+	NextTick = CurTick + m90e26STAT_INTVL;
+	if (ssd1306GetDisplayState()) {
+		m90e26GuiUpdateInfo(Index);
+	}
 	++Index ;
 	Index %= (NumM90E26 * 2) ;
 	if (Index == 0)
 		ssd1306StepContrast(m90e26STEP_CONTRAST);
 }
 
-#endif	// halHAS_M90E26 halHAS_SSD1306
+#endif	// halHAS_SSD1306
+#endif	// halHAS_M90E26
 
 /* ################################### OLD CODE #####################################
 
