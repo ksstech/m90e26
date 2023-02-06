@@ -301,7 +301,7 @@ int m90e26Config(void) {
 		.max_transfer_sz = 128,
 		.flags = 0
 	};
-	ESP_ERROR_CHECK(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH1));
+	ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH1));
 
 	for (s8_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
 		if ((m90e26Identify(eChan) != erSUCCESS) || (m90e26Init(eChan) != erSUCCESS)) {
