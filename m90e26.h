@@ -153,19 +153,6 @@ enum {								// sensor data registers
 	eNUM_DATA_REG
  } ;
 
-enum {								// supported mode options
-	eINVALID,
-	eL_GAIN,						// 1, 4, 8, 16, 24
-	eN_GAIN,						// 1, 2, 4
-	eSOFTRESET,						// reset only
-	eRECALIB,						// reset & recalibrate
-	m90e26CALC_CUR_OFST,
-	m90e26CALC_PWR_OFST,
-	m90e26CALIB_SAVE,
-	m90e26CALIB_DELETE,
-	m90e26WRITE_REG,
-} ;
-
 enum display_mode {
 	eDM_DISABLED,
 	eDM_NORMAL,						// always on, cycle through, step contrast
