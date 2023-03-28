@@ -52,9 +52,6 @@
 
 #define	M90E26_T_SNS				1000
 
-
-void m90e26GuiTimerHandler(TimerHandle_t);
-
 // ###################################### Private variables #######################################
 
 spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
@@ -364,14 +361,6 @@ int	m90e26Init(u8_t eChan) {
 	m90e26Cfg.Chan[eChan].E_Scale = 0;					// Wh not kWh
 	m90e26Cfg.Chan[eChan].P_Scale = 0;					// W not kW
 	m90e26Cfg.Chan[eChan].I_Scale = 0;					// A not mA
-#if (halHAS_SSD1306 > 0)
-	if (m90e26TH == NULL) {
-		m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
-		IF_myASSERT(debugRESULT, m90e26TH != 0);
-		iRV = xTimerStart(m90e26TH, 0);
-		IF_myASSERT(debugRESULT, iRV != pdFAIL);
-	}
-#endif
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS;
 }
 
@@ -560,19 +549,51 @@ void m90e26Report(void) {
 	m90e26ReportData() ;
 	m90e26ReportStatus() ;
 }
+#endif	// halHAS_M90E26
 
 // ############################################ GUI Support ########################################
 
 #if (halHAS_SSD1306 > 0)
+void m90e26GuiTimerInit(void) {
+	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
+	IF_myASSERT(debugRESULT, m90e26TH != 0);
+	int iRV = xTimerStart(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+}
+
+void m90e26GuiTimerDeInit(void) {
+	int iRV = xTimerStop(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+	iRV = xTimerDelete(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+}
+
+void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
+	if (xRtosGetStateDELETE(taskGUI_MASK) || !xRtosGetStateRUN(taskGUI_MASK) || !m90e26_handle[0])
+		return;
+	TickType_t CurTick = xTaskGetTickCount();
+	if (NextTick == 0)
+		NextTick = CurTick;
+	else if (NextTick > CurTick)
+		return;
+	NextTick = CurTick + m90e26STAT_INTVL;
+	if (ssd1306GetDisplayState()) {
+		m90e26GuiUpdateInfo(Index);
+	}
+	++Index ;
+	Index %= (NumM90E26 * 2) ;
+	if (Index == 0)
+		ssd1306StepContrast(m90e26STEP_CONTRAST);
+}
 
 void m90e26GuiUpdateInfo(u8_t Index) {
-	epw_t * psEW ;
-#if	(halHAS_M90E26 == 2)
+	epw_t * psEW;
+	#if	(halHAS_M90E26 == 2)
 	u8_t eChan = Index / NumM90E26 ;
 	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
-#else
+	#else
 	psEW = &table_work[URI_M90E26_E_ACT_FWD_0] ;
-#endif
+	#endif
 	if ((Index % 2) == 0) {
 		snprintfx(DispBuf, sizeof(DispBuf),
 		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
@@ -594,25 +615,6 @@ void m90e26GuiUpdateInfo(u8_t Index) {
 	}
 	pReqBuf = DispBuf;				// enable next text display
 }
-
-void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
-	if (m90e26_handle[0] == 0)
-		return;
-	TickType_t CurTick = xTaskGetTickCount();
-	if (NextTick == 0)
-		NextTick = CurTick;
-	else if (NextTick > CurTick)
-		return;
-	NextTick = CurTick + m90e26STAT_INTVL;
-	if (ssd1306GetDisplayState()) {
-		m90e26GuiUpdateInfo(Index);
-	}
-	++Index ;
-	Index %= (NumM90E26 * 2) ;
-	if (Index == 0)
-		ssd1306StepContrast(m90e26STEP_CONTRAST);
-}
-
 #endif	// halHAS_SSD1306
 #endif	// halHAS_M90E26
 

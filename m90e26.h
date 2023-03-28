@@ -288,6 +288,11 @@ int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
 
 void m90e26Report(void);
 
+void m90e26GuiTimerInit(void);
+void m90e26GuiTimerDeInit(void);
+void m90e26GuiTimerHandler(TimerHandle_t xTimer);
+void m90e26GuiUpdateInfo(u8_t Index);
+
 #ifdef __cplusplus
 }
 #endif
