@@ -553,7 +553,7 @@ void m90e26Report(void) {
 
 // ############################################ GUI Support ########################################
 
-#if (halHAS_SSD1306 > 0)
+#if (halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
 void m90e26GuiTimerInit(void) {
 	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
 	IF_myASSERT(debugRESULT, m90e26TH != 0);
@@ -615,8 +615,7 @@ void m90e26GuiUpdateInfo(u8_t Index) {
 	}
 	pReqBuf = DispBuf;				// enable next text display
 }
-#endif	// halHAS_SSD1306
-#endif	// halHAS_M90E26
+#endif	// halHAS_M90E26 && halHAS_SSD1306
 
 /* ################################### OLD CODE #####################################
 
