@@ -103,6 +103,9 @@ extern "C" {
 #define	CODE_RESET			0x789A	// trigger software reset
 #define	CODE_POWER			0xA987	// Set small power mode
 
+// Number of sets of calibration parameters stored in NVS
+#define m90e26CALIB_NUM				4
+
 // ######################################## Enumerations ###########################################
 
 enum {								// configuration registers
@@ -171,7 +174,6 @@ enum display_mode {
 	eDM_MAXIMUM,
 } ;
 
-enum { FACTORY = 0, CALIB1, CALIB2, CALIB3, CALIB_NUM} ;
 
 // ######################################### Structures ############################################
 

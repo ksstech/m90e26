@@ -251,8 +251,8 @@ u32_t m90e26ReadU32(u8_t eChan, u8_t Reg) {
 i32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1 ; }
 
 int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) {
-	IF_myASSERT(debugPARAM, Idx < CALIB_NUM) ;
-	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
+	IF_myASSERT(debugPARAM, Idx < m90e26CALIB_NUM) ;
+	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_OK) ;
 	if (iRV == erSUCCESS) {
@@ -341,11 +341,11 @@ int	m90e26Init(u8_t eChan) {
 	IF_SYSTIMER_INIT(debugTIMING, stM90EX6W, stMICROS, "M90E26WR", 1500, 15000) ;
 	/* Check that blob with CALibration and ADJustment values exists
 	 * If not existing, create with factory defaults as first record */
-	size_t	SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t) ;
+	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t) ;
 	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob) ;
 	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_ERR_NVS_NOT_FOUND);
-	if ((iRV != erSUCCESS) || (SizeBlob != (CALIB_NUM * sizeof(nvs_m90e26_t)))) {
-		memset(psCalib, 0, SizeBlob = CALIB_NUM * sizeof(nvs_m90e26_t)) ;
+	if ((iRV != erSUCCESS) || (SizeBlob != (m90e26CALIB_NUM * sizeof(nvs_m90e26_t)))) {
+		memset(psCalib, 0, SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t)) ;
 		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default)) ;
 		iRV = halSTORAGE_WriteBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, SizeBlob);
 		IF_myASSERT(debugRESULT, iRV == erSUCCESS);
