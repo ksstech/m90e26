@@ -548,6 +548,7 @@ void m90e26Report(void) {
 	m90e26ReportAdjust() ;
 	m90e26ReportData() ;
 	m90e26ReportStatus() ;
+	xRtosReportTimer(NULL, m90e26TH);
 }
 #endif	// halHAS_M90E26
 
