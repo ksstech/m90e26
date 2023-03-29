@@ -3,23 +3,20 @@
  * Copyright (c) 2018-22 Andre M. Maree / KSS Technologies (Pty) Ltd.
  */
 
-#include "main.h"
+#include "hal_config.h"
 
 #if (halHAS_M90E26 > 0)
 #include "m90e26.h"
 #include "hal_spi.h"
 #include "hal_storage.h"
 #include "FreeRTOS_Support.h"
+#include "options.h"
 #include "printfx.h"
 #include "syslog.h"
 #include "systiming.h"					// timing debugging
 #include "x_errors_events.h"
 
 #include "nvs.h"
-
-#if (halHAS_SSD1306 > 0)
-	#include "gui_main.h"
-#endif
 
 // ######################################## Build macros ###########################################
 
@@ -555,6 +552,9 @@ void m90e26Report(void) {
 // ############################################ GUI Support ########################################
 
 #if (halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
+
+#include "ssd1306.h"
+
 void m90e26GuiTimerInit(void) {
 	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
 	IF_myASSERT(debugRESULT, m90e26TH != 0);
