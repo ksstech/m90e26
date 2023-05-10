@@ -363,7 +363,7 @@ int	m90e26Init(u8_t eChan) {
 
 // ########################### 32 bit value endpoint support functions #############################
 
-int	m90e26ReadCurrent(epw_t * psEW) {
+int	m90e26SenseCurrent(epw_t * psEW) {
 	u8_t eIdx = m90e26CalcInfo(psEW) ;
 	float f32Val = (float) m90e26ReadU32(psEW->eChan, m90e26RegAddr[eIdx]) ;
 	IF_P(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEW->uri, eIdx, m90e26RegAddr[eIdx], psEW->eChan) ;
@@ -394,7 +394,7 @@ int	m90e26ReadCurrent(epw_t * psEW) {
 	return erSUCCESS ;
 }
 
-int	m90e26ReadVoltage(epw_t * psEW) {		// OK
+int	m90e26SenseVoltage(epw_t * psEW) {		// OK
 	m90e26CalcInfo(psEW) ;
 	float	f32Val	= (float) m90e26ReadU32(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
 	f32Val			/= 6553600.0 ;						// Change mV to V
@@ -403,7 +403,7 @@ int	m90e26ReadVoltage(epw_t * psEW) {		// OK
 	return erSUCCESS ;
 }
 
-int	m90e26ReadPower(epw_t * psEW) {
+int	m90e26SensePower(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float	f32Val	= (float) m90e26ReadI32TC(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
 	f32Val /= (m90e26Cfg.Chan[psEW->eChan].P_Scale == 1) ? 65536000.0 : 65536.0 ;
@@ -414,7 +414,7 @@ int	m90e26ReadPower(epw_t * psEW) {
 
 // ########################### 16 bit value endpoint support functions #############################
 
-int	m90e26ReadEnergy(epw_t * psEW) {
+int	m90e26SenseEnergy(epw_t * psEW) {
 	if (psEW->var.def.cv.sumX) {	// if just a normal update cycle
 		m90e26CalcInfo(psEW) ;
 		float f32Val	= (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) ;
@@ -428,21 +428,21 @@ int	m90e26ReadEnergy(epw_t * psEW) {
 	return erSUCCESS ;
 }
 
-int	m90e26ReadFrequency(epw_t * psEW) {
+int	m90e26SenseFrequency(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float f32Val = (float) m90e26ReadU16(psEW->eChan, m90e26RegAddr[psEW->idx]) / 100.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-int	m90e26ReadPowerFactor(epw_t * psEW) {
+int	m90e26SensePowerFactor(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float f32Val = (float)  m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 1000.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
 	return erSUCCESS ;
 }
 
-int	m90e26ReadPowerAngle(epw_t * psEW) {
+int	m90e26SensePowerAngle(epw_t * psEW) {
 	m90e26CalcInfo(psEW) ;
 	float f32Val = (float) m90e26ReadI16S(psEW->eChan, m90e26RegAddr[psEW->idx]) / 10.0 ;
 	xEpSetValue(psEW, (x32_t) f32Val) ;
