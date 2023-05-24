@@ -3,7 +3,7 @@
  * Copyright (c) 2018-22 Andre M. Maree / KSS Technologies (Pty) Ltd.
  */
 
-#include "hal_config.h"
+#include "hal_variables.h"
 
 #if (halHAS_M90E26 > 0)
 #include "m90e26.h"
@@ -358,6 +358,7 @@ int	m90e26Init(u8_t eChan) {
 	m90e26Cfg.Chan[eChan].E_Scale = 0;					// Wh not kWh
 	m90e26Cfg.Chan[eChan].P_Scale = 0;					// W not kW
 	m90e26Cfg.Chan[eChan].I_Scale = 0;					// A not mA
+	DevIDflag |= 1 << devID_M90E26;
 	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS;
 }
 
@@ -603,7 +604,10 @@ void m90e26GuiTimerDeInit(void) {
 }
 
 void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
-	if (xRtosGetStateDELETE(taskGUI_MASK) || !xRtosGetStateRUN(taskGUI_MASK) || !m90e26_handle[0])
+	if (xRtosGetStateDELETE(taskGUI_MASK) || 			// GUI set to delete, or
+		!xRtosGetStateRUN(taskGUI_MASK) || 				// GUI not (yet) running, or
+		!(DevIDflag & devID_SSD1306) ||
+		!(DevIDflag & devID_M90E26))					// M90E26 not yet initialized
 		return;
 	TickType_t CurTick = xTaskGetTickCount();
 	if (NextTick == 0)
