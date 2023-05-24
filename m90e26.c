@@ -558,6 +558,36 @@ void m90e26Report(void) {
 extern char DispBuf[];
 extern char * pReqBuf;
 
+static void m90e26GuiUpdateInfo(u8_t Index) {
+	epw_t * psEW;
+	#if	(halHAS_M90E26 == 2)
+	u8_t eChan = Index / NumM90E26 ;
+	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
+	#else
+	psEW = &table_work[URI_M90E26_E_ACT_FWD_0] ;
+	#endif
+	if ((Index % 2) == 0) {
+		snprintfx(DispBuf, halLCD_MAX_CHAR,
+		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
+		xCV_GetValueScaled(&psEW[eVOLTS].var, NULL),
+		xCV_GetValueScaled(&psEW[eFREQ].var, NULL),
+		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_ACT_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL));
+	} else {
+		snprintfx(DispBuf, halLCD_MAX_CHAR,
+		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
+		xCV_GetValueScaled(&psEW[eE_ACT_FWD].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_ACT_REV].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_FWD].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL));
+	}
+	pReqBuf = DispBuf;				// enable next text display
+}
+
 void m90e26GuiTimerInit(void) {
 	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
 	IF_myASSERT(debugRESULT, m90e26TH != 0);
@@ -588,36 +618,6 @@ void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	Index %= (NumM90E26 * 2) ;
 	if (Index == 0)
 		ssd1306StepContrast(m90e26STEP_CONTRAST);
-}
-
-void m90e26GuiUpdateInfo(u8_t Index) {
-	epw_t * psEW;
-	#if	(halHAS_M90E26 == 2)
-	u8_t eChan = Index / NumM90E26 ;
-	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1] ;
-	#else
-	psEW = &table_work[URI_M90E26_E_ACT_FWD_0] ;
-	#endif
-	if ((Index % 2) == 0) {
-		snprintfx(DispBuf, halLCD_MAX_CHAR,
-		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
-		xCV_GetValueScaled(&psEW[eVOLTS].var, NULL),
-		xCV_GetValueScaled(&psEW[eFREQ].var, NULL),
-		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_ACT_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL));
-	} else {
-		snprintfx(DispBuf, halLCD_MAX_CHAR,
-		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
-		xCV_GetValueScaled(&psEW[eE_ACT_FWD].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_ACT_REV].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_FWD].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL));
-	}
-	pReqBuf = DispBuf;				// enable next text display
 }
 #endif	// halHAS_M90E26 && halHAS_SSD1306
 
