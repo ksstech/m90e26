@@ -285,27 +285,6 @@ u8_t m90e26CalcInfo(epw_t * psEW) {
 
 // ############################## identification & initialization ##################################
 
-int m90e26Config(void) {
-	const spi_bus_config_t buscfg = {
-		.mosi_io_num	= m90e26VSPI_MOSI,
-		.miso_io_num	= m90e26VSPI_MISO,
-		.sclk_io_num	= m90e26VSPI_SCLK,
-		.quadwp_io_num	= -1,
-		.quadhd_io_num	= -1,
-		.max_transfer_sz = 128,
-		.flags = 0
-	};
-	ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH1));
-
-	for (s8_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		if ((m90e26Identify(eChan) != erSUCCESS) || (m90e26Init(eChan) != erSUCCESS)) {
-			SL_ERR("Failed to identify/init #%d", eChan);
-			return erFAILURE;
-		}
-	}
-	return erSUCCESS;
-}
-
 int	m90e26Identify(u8_t eChan) {
 	IF_myASSERT(debugPARAM, eChan < NumM90E26) ;
 	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan])) ;
@@ -327,6 +306,27 @@ int	m90e26Identify(u8_t eChan) {
 		psEW->Tsns = psEW->Rsns = M90E26_T_SNS;		// start sensing
 	}
 	return erSUCCESS ;
+}
+
+int m90e26Config(void) {
+	const spi_bus_config_t buscfg = {
+		.mosi_io_num	= m90e26VSPI_MOSI,
+		.miso_io_num	= m90e26VSPI_MISO,
+		.sclk_io_num	= m90e26VSPI_SCLK,
+		.quadwp_io_num	= -1,
+		.quadhd_io_num	= -1,
+		.max_transfer_sz = 128,
+		.flags = 0
+	};
+	ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH1));
+
+	for (s8_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
+		if ((m90e26Identify(eChan) != erSUCCESS) || (m90e26Init(eChan) != erSUCCESS)) {
+			SL_ERR("Failed to identify/init #%d", eChan);
+			return erFAILURE;
+		}
+	}
+	return erSUCCESS;
 }
 
 /**
