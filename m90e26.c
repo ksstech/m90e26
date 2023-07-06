@@ -604,7 +604,7 @@ void m90e26GuiTimerDeInit(void) {
 }
 
 void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
-	if (!bRtosCheckTaskState(taskGUI_MASK) || 			// GUI not (yet) running or set to delete
+	if (!bRtosTaskCheckOK(taskGUI_MASK) || 				// GUI not (yet) running or set to delete
 		!(DevIDflag & devID_SSD1306) ||
 		!(DevIDflag & devID_M90E26))					// M90E26 not yet initialized
 		return;
