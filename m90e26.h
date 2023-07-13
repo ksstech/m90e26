@@ -275,7 +275,7 @@ int	m90e26SensePowerAngle(epw_t *);
 
 int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
 
-void m90e26Report(void);
+int m90e26Report(report_t * psR);
 
 void m90e26GuiTimerInit(void);
 void m90e26GuiTimerDeInit(void);

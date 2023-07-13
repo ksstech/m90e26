@@ -468,14 +468,14 @@ inline u16_t m90e26GetMeterStatus(u8_t eCh)	{ return m90e26ReadU16(eCh, MET_STAT
 #define	HDR_STATUS		"Ch  System    CRC1    CRC2  L/N Ch RevQchg RevPchg SagWarn   Meter Qnoload Pnoload    RevQ    RevP  Tamper  L-Mode"
 #define	BLANK8			"        "
 
-void m90e26ReportCalib(void) {
-	printfx("%C%s%C\r\n", colourFG_CYAN, HDR_CALIB HDR_MMODE, attrRESET);
-	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
-		printfx("%2d", eChan);
-		for (int i = CALSTART; i <= CRC_1; printfx("  0x%04X", m90e26ReadU16(eChan, i++)));
-		m90e26meter_mode_t	MeterMode = (m90e26meter_mode_t) m90e26ReadU16(eChan, MET_MODE);
+int m90e26ReportCalib(report_t * psR) {
+	int iRV = wprintfx(psR, "%C%s%C\r\n", colourFG_CYAN, HDR_CALIB HDR_MMODE, attrRESET);
+	for (int eCh = 0; eCh < NumM90E26; ++eCh) {
+		iRV += wprintfx(psR, "%2d", eCh);
+		for (int i = CALSTART; i <= CRC_1; iRV += wprintfx(psR, "  0x%04X", m90e26ReadU16(eCh, i++)));
+		m90e26meter_mode_t	MeterMode = (m90e26meter_mode_t) m90e26ReadU16(eCh, MET_MODE);
 		u8_t	Pthres[16] = { 200, 100, 50, 25, 16, 32, 48, 64,80, 96, 112, 128, 144, 160, 176, 192 };
-		printfx("  %-2s  %2s %7s %7s %7s %7s  %6s %2.4f\r\n",
+		iRV += wprintfx(psR, "  %-2s  %2s %7s %7s %7s %7s  %6s %2.4f\r\n",
 			MeterMode.Lgain == 3 ? "24" : MeterMode.Lgain == 2 ? "16" : MeterMode.Lgain == 1 ? "8" : MeterMode.Lgain == 0 ? "4" : "1",
 			MeterMode.Ngain == 0 ? "2" : MeterMode.Ngain == 1 ? "4" : "1",
 			MeterMode.LNSel ? "Live" : "Neutral",
@@ -485,68 +485,73 @@ void m90e26ReportCalib(void) {
 			MeterMode.Zxcon	== 0 ? "AllPos" : MeterMode.Zxcon	== 1 ? "AllNeg" : MeterMode.Zxcon	== 2 ? "All+/-" : "None",
 			(float) Pthres[MeterMode.Pthresh] / 16);
 	}
+	return iRV;
 }
 
-void m90e26ReportAdjust(void) {
-	printfx("%C%s%C\r\n", colourFG_CYAN, HDR_ADJUST, attrRESET);
-	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
-		printfx("%2d", eChan);
-		for (int i = ADJSTART; i <= CRC_2; printfx("  0x%04X", m90e26ReadU16(eChan, i++)));
-		printfx(strCRLF);
+int m90e26ReportAdjust(report_t * psR) {
+	int iRV = wprintfx(psR, "%C%s%C\r\n", colourFG_CYAN, HDR_ADJUST, attrRESET);
+	for (int eCh = 0; eCh < NumM90E26; ++eCh) {
+		iRV += wprintfx(psR, "%2d", eCh);
+		for (int i = ADJSTART; i <= CRC_2; iRV += wprintfx(psR, "  0x%04X", m90e26ReadU16(eCh, i++)));
+		iRV += wprintfx(psR, strCRLF);
 	}
+	return iRV;
 }
 
-void m90e26ReportData(void) {
+int m90e26ReportData(report_t * psR) {
 	const u8_t m90e26DataReg[] = {
 		E_ACT_FWD, E_ACT_REV, E_ACT_ABS, E_REACT_FWD, E_REACT_REV, E_REACT_ABS,
 		I_RMS_L, V_RMS, P_ACT_L, P_REACT_L, FREQ, P_FACTOR_L, P_ANGLE_L, P_APP_L,
 		I_RMS_N, P_ACT_N, P_REACT_N, P_FACTOR_N, P_ANGLE_N, P_APP_N,
 	};
-	printfx("%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\r\n", colourFG_CYAN, attrRESET);
-	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
-		printfx("%2d", eChan);
+	int iRV = wprintfx(psR, "%C" HDR_DATA_LIVE HDR_DATA_NEUT "%C\r\n", colourFG_CYAN, attrRESET);
+	for (int eCh = 0; eCh < NumM90E26; ++eCh) {
+		iRV += wprintfx(psR, "%2d", eCh);
 		for (int i = 0; i < eNUM_DATA_REG; ++i) {
 			if (i < 6) {								// For energy registers reading it will reset the value...
-				printfx(" %7.2g", sRTCvars.aRTCsum[eChan][i]);
+				iRV += wprintfx(psR, " %7.2g", sRTCvars.aRTCsum[eCh][i]);
 			} else {
-				printfx("  0x%04X", m90e26ReadU16(eChan, m90e26DataReg[i]));
+				iRV += wprintfx(psR, "  0x%04X", m90e26ReadU16(eCh, m90e26DataReg[i]));
 			}
 		}
-		printfx(strCRLF);
+		iRV += wprintfx(psR, strCRLF);
 	}
+	return iRV;
 }
 
-void m90e26ReportStatus(void) {
-	printfx("%C%s%C\r\n", colourFG_CYAN, HDR_STATUS, attrRESET);
-	for (int eChan = 0; eChan < NumM90E26; ++eChan) {
-		m90e26system_stat_t SysStatus = (m90e26system_stat_t) m90e26GetSysStatus(eChan);
-		printfx("%2d  0x%04X", eChan, SysStatus.val);
-		printfx(SysStatus.CalErr		? "  Error "	: BLANK8);
-		printfx(SysStatus.AdjErr		? "  Error "	: BLANK8);
-		printfx(SysStatus.LnChge		? " L/N chg"	: BLANK8);
-		printfx(SysStatus.RevQchg		? " DIR chg"	: BLANK8);
-		printfx(SysStatus.RevPchg		? " DIR chg"	: BLANK8);
-		printfx(SysStatus.SagWarn		? "  V sag "	: BLANK8);
-		m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eChan);
-		printfx("  0x%04X", MeterStatus.val);
-		printfx(MeterStatus.Qnoload	? " NO Load"	: BLANK8);
-		printfx(MeterStatus.Pnoload	? " NO Load"	: BLANK8);
-		printfx(MeterStatus.RevQ		? " Reverse"	: BLANK8);
-		printfx(MeterStatus.RevP		? " Reverse"	: BLANK8);
-		printfx(MeterStatus.Line 		? "    Live"	: " Neutral");
-		printfx(MeterStatus.LNMode==3 ? "    Flex"	:
+int m90e26ReportStatus(report_t * psR) {
+	int iRV = wprintfx(psR, "%C%s%C\r\n", colourFG_CYAN, HDR_STATUS, attrRESET);
+	for (int eCh = 0; eCh < NumM90E26; ++eCh) {
+		m90e26system_stat_t SysStatus = (m90e26system_stat_t) m90e26GetSysStatus(eCh);
+		iRV += wprintfx(psR, "%2d  0x%04X", eCh, SysStatus.val);
+		iRV += wprintfx(psR, SysStatus.CalErr		? "  Error "	: BLANK8);
+		iRV += wprintfx(psR, SysStatus.AdjErr		? "  Error "	: BLANK8);
+		iRV += wprintfx(psR, SysStatus.LnChge		? " L/N chg"	: BLANK8);
+		iRV += wprintfx(psR, SysStatus.RevQchg		? " DIR chg"	: BLANK8);
+		iRV += wprintfx(psR, SysStatus.RevPchg		? " DIR chg"	: BLANK8);
+		iRV += wprintfx(psR, SysStatus.SagWarn		? "  V sag "	: BLANK8);
+		m90e26meter_stat_t MeterStatus = (m90e26meter_stat_t) m90e26GetMeterStatus(eCh);
+		iRV += wprintfx(psR, "  0x%04X", MeterStatus.val);
+		iRV += wprintfx(psR, MeterStatus.Qnoload	? " NO Load"	: BLANK8);
+		iRV += wprintfx(psR, MeterStatus.Pnoload	? " NO Load"	: BLANK8);
+		iRV += wprintfx(psR, MeterStatus.RevQ		? " Reverse"	: BLANK8);
+		iRV += wprintfx(psR, MeterStatus.RevP		? " Reverse"	: BLANK8);
+		iRV += wprintfx(psR, MeterStatus.Line 		? "    Live"	: " Neutral");
+		iRV += wprintfx(psR, MeterStatus.LNMode==3 ? "    Flex"	:
 			  MeterStatus.LNMode==2 ? "    Both"	:
 			  MeterStatus.LNMode==1 ? "    Live"	: "  Tamper");
-		printfx(strCRLF);
+		iRV += wprintfx(psR, strCRLF);
 	}
+	return iRV;
 }
 
-void m90e26Report(void) {
-	m90e26ReportCalib();
-	m90e26ReportAdjust();
-	m90e26ReportData();
-	m90e26ReportStatus();
-	xRtosReportTimer(NULL, m90e26TH);
+int m90e26Report(report_t * psR) {
+	int iRV = m90e26ReportCalib(psR);
+	iRV += m90e26ReportAdjust(psR);
+	iRV += m90e26ReportData(psR);
+	iRV += m90e26ReportStatus(psR);
+	iRV += xRtosReportTimer(psR, m90e26TH);
+	return iRV;
 }
 #endif	// halHAS_M90E26
 
