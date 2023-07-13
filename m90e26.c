@@ -149,9 +149,9 @@ static StaticTimer_t m90e26TS = { 0 };
 
 // ############################### common support routines #########################################
 
-void m90e26WriteU16(u8_t eChan, u8_t address, u16_t val) {
-	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eChan]);
-	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY);
+void m90e26WriteU16(u8_t eCh, u8_t address, u16_t val) {
+	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eCh]);
+	xRtosSemaphoreTake(&m90e26mutex[eCh], portMAX_DELAY);
 	spi_transaction_t m90e26_buf;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
 	m90e26_buf.length		= 8 * 3;
@@ -160,111 +160,111 @@ void m90e26WriteU16(u8_t eChan, u8_t address, u16_t val) {
 	m90e26_buf.tx_data[1]	= val >> 8;
 	m90e26_buf.tx_data[2]	= val & 0xFF;
 	IF_EXEC_1(debugTIMING, xSysTimerStart, stM90EX6W);
-	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf));
+	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eCh], &m90e26_buf));
 	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6W);
-	xRtosSemaphoreGive(&m90e26mutex[eChan]);
+	xRtosSemaphoreGive(&m90e26mutex[eCh]);
 	IF_P(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\r\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]);
 }
 
-u16_t m90e26ReadU16(u8_t eChan, u8_t address) {
-	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eChan]);
-	xRtosSemaphoreTake(&m90e26mutex[eChan], portMAX_DELAY);
+u16_t m90e26ReadU16(u8_t eCh, u8_t address) {
+	IF_myASSERT(debugPARAM, address < 0x70 && m90e26_handle[eCh]);
+	xRtosSemaphoreTake(&m90e26mutex[eCh], portMAX_DELAY);
 	spi_transaction_t m90e26_buf;
 	memset(&m90e26_buf, 0, sizeof(m90e26_buf));
 	m90e26_buf.length		= 8 * 3;
 	m90e26_buf.flags 		= SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA;
 	m90e26_buf.tx_data[0]	= address | 0x80;
 	IF_EXEC_1(debugTIMING, xSysTimerStart, stM90EX6R);
-	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eChan], &m90e26_buf));
+	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eCh], &m90e26_buf));
 	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6R);
-	xRtosSemaphoreGive(&m90e26mutex[eChan]);
+	xRtosSemaphoreGive(&m90e26mutex[eCh]);
 	IF_P(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\r\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]);
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2];
 }
 
-void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) {
+void m90e26WriteRegister(u8_t eCh, u8_t Reg, u16_t Val) {
 	if (INRANGE(PLconstH, Reg, MET_MODE)) {
-		if (m90e26ReadU16(eChan, CALSTART) != CODE_START) {
+		if (m90e26ReadU16(eCh, CALSTART) != CODE_START) {
 			SL_NOT("CALSTART (x20) in wrong state, must be x5678");
 		} else {
-			m90e26WriteU16(eChan, Reg, Val);				// write new value & update CRC
-			m90e26WriteU16(eChan, CRC_1, m90e26ReadU16(eChan, CRC_1));
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg);
-			nvsM90E26default[eChan].calreg[Reg-PLconstH] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eChan].calreg);
+			m90e26WriteU16(eCh, Reg, Val);				// write new value & update CRC
+			m90e26WriteU16(eCh, CRC_1, m90e26ReadU16(eCh, CRC_1));
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
+			nvsM90E26default[eCh].calreg[Reg-PLconstH] = Val;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N)) {
-		if (m90e26ReadU16(eChan, ADJSTART) != CODE_START) {
+		if (m90e26ReadU16(eCh, ADJSTART) != CODE_START) {
 			SL_NOT("ADJSTART (x30) in wrong state, must be x5678");
 		} else {
-			m90e26WriteU16(eChan, Reg, Val);				// write new value & update CRC
-			m90e26WriteU16(eChan, CRC_2, m90e26ReadU16(eChan, CRC_2));
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg);
-			nvsM90E26default[eChan].adjreg[Reg-U_GAIN] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eChan].adjreg);
+			m90e26WriteU16(eCh, Reg, Val);				// write new value & update CRC
+			m90e26WriteU16(eCh, CRC_2, m90e26ReadU16(eCh, CRC_2));
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
+			nvsM90E26default[eCh].adjreg[Reg-U_GAIN] = Val;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
 		}
 	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE) || Reg == CALSTART || Reg == ADJSTART) {
-		m90e26WriteU16(eChan, Reg, Val);				// write new value
+		m90e26WriteU16(eCh, Reg, Val);				// write new value
 		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE)) {
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg);
-			nvsM90E26default[eChan].cfgreg[Reg-FUNC_ENAB] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eChan].cfgreg);
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
+			nvsM90E26default[eCh].cfgreg[Reg-FUNC_ENAB] = Val;
+			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
 		}
 	} else {
 		SL_ERR("Invalid register=0x%02X", Reg);
 	}
 }
 
-u16_t m90e26ReadModifyWrite(u8_t eChan, u8_t Addr, u16_t Value, u16_t Mask) {
-	IF_P(debugRMW, "  C=%d  R=%d  &=x%04X  |=x%04X", eChan, Addr, Value, Mask);
-	u16_t CurValue = m90e26ReadU16(eChan, Addr);
+u16_t m90e26ReadModifyWrite(u8_t eCh, u8_t Addr, u16_t Value, u16_t Mask) {
+	IF_P(debugRMW, "  C=%d  R=%d  &=x%04X  |=x%04X", eCh, Addr, Value, Mask);
+	u16_t CurValue = m90e26ReadU16(eCh, Addr);
 	IF_P(debugRMW, "  V=x%04X", CurValue);
 	CurValue &= ~Mask;
 	IF_P(debugRMW, " -> x%04X", CurValue);
 	CurValue |= Value;
 	IF_P(debugRMW, " -> x%04X\r\n", CurValue);
-	m90e26WriteRegister(eChan, Addr, CurValue);
+	m90e26WriteRegister(eCh, Addr, CurValue);
 	return CurValue;
 }
 
-s16_t m90e26ReadI16S(u8_t eChan, u8_t Reg) {
-	u16_t RawVal = m90e26ReadU16(eChan, Reg);
+s16_t m90e26ReadI16S(u8_t eCh, u8_t Reg) {
+	u16_t RawVal = m90e26ReadU16(eCh, Reg);
 	bool	Sign	= RawVal & 0x8000 ? true : false;
 	s16_t	i16Val	= RawVal & 0x7FFF;
 	s16_t	ConVal	= Sign == true ? -1 * i16Val : i16Val;
 	return ConVal;
 }
 
-s16_t m90e26ReadI16TC(u8_t eChan, u8_t Reg) { return ~m90e26ReadU16(eChan, Reg) + 1; }
+s16_t m90e26ReadI16TC(u8_t eCh, u8_t Reg) { return ~m90e26ReadU16(eCh, Reg) + 1; }
 
-u32_t m90e26ReadU32(u8_t eChan, u8_t Reg) {
+u32_t m90e26ReadU32(u8_t eCh, u8_t Reg) {
 	#if	(m90e26READ_32BIT == 1)
-	return (m90e26ReadU16(eChan, Reg) << 16) + m90e26ReadU16(eChan, LSB);
+	return (m90e26ReadU16(eCh, Reg) << 16) + m90e26ReadU16(eCh, LSB);
 	#else
-	return (m90e26ReadU16(eChan, Reg) << 16);
+	return (m90e26ReadU16(eCh, Reg) << 16);
 	#endif
 }
 
-i32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg) { return ~m90e26ReadU32(eChan, Reg) + 1; }
+i32_t m90e26ReadI32TC(u8_t eCh, u8_t Reg) { return ~m90e26ReadU32(eCh, Reg) + 1; }
 
-int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) {
+int	m90e26LoadNVSConfig(u8_t eCh, u8_t Idx) {
 	IF_myASSERT(debugPARAM, Idx < m90e26CALIB_NUM);
 	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t);
 	nvs_m90e26_t * psCalib = pvRtosMalloc(SizeBlob);
 	int iRV = halSTORAGE_ReadBlob(halSTORAGE_STORE, halSTORAGE_KEY_M90E26, psCalib, &SizeBlob, ESP_OK);
 	if (iRV == erSUCCESS) {
 		psCalib += Idx;								// write the FuncEnab, Vsag Threshold and PowerMode registers
-		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eChan, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i);
+		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eCh, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i);
 
-		m90e26WriteU16(eChan, CALSTART, CODE_START);		// write the configuration registers with METER calibration data
-		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eChan, i+PLconstH, psCalib->calreg[i]), ++i);
-		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eChan, CALSTART, CODE_CHECK);
+		m90e26WriteU16(eCh, CALSTART, CODE_START);		// write the configuration registers with METER calibration data
+		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eCh, i+PLconstH, psCalib->calreg[i]), ++i);
+		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eCh, CALSTART, CODE_CHECK);
 
-		m90e26WriteU16(eChan, ADJSTART, CODE_START);		// write the configuration registers with MEASURE calibration data
-		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eChan, i+U_GAIN, psCalib->adjreg[i]), ++i);
-		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eChan, ADJSTART, CODE_CHECK);
+		m90e26WriteU16(eCh, ADJSTART, CODE_START);		// write the configuration registers with MEASURE calibration data
+		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eCh, i+U_GAIN, psCalib->adjreg[i]), ++i);
+		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eCh, ADJSTART, CODE_CHECK);
 	} else {
-		SL_ERR("Failed Ch=%d config=%d", eChan, Idx);
+		SL_ERR("Failed Ch=%d config=%d", eCh, Idx);
 	}
 	vRtosFree (psCalib);
 	return iRV;
@@ -285,17 +285,17 @@ u8_t m90e26CalcInfo(epw_t * psEW) {
 
 // ############################## identification & initialization ##################################
 
-int	m90e26Identify(u8_t eChan) {
-	IF_myASSERT(debugPARAM, eChan < NumM90E26);
-	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eChan], &m90e26_handle[eChan]));
-	m90e26mutex[eChan]	= xSemaphoreCreateMutex();
-	IF_myASSERT(debugRESULT, m90e26mutex[eChan]);
+int	m90e26Identify(u8_t eCh) {
+	IF_myASSERT(debugPARAM, eCh < NumM90E26);
+	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eCh], &m90e26_handle[eCh]));
+	m90e26mutex[eCh]	= xSemaphoreCreateMutex();
+	IF_myASSERT(debugRESULT, m90e26mutex[eCh]);
 
-	int	Uri0 = (eChan == 0) ? URI_M90E26_E_ACT_FWD_0	: URI_M90E26_E_ACT_FWD_1;
+	int	Uri0 = (eCh == 0) ? URI_M90E26_E_ACT_FWD_0	: URI_M90E26_E_ACT_FWD_1;
 	#if	(m90e26NEUTRAL > 0)
-	int UriX = (eChan == 0) ? URI_M90E26_P_APP_N_0		: URI_M90E26_P_APP_N_1;
+	int UriX = (eCh == 0) ? URI_M90E26_P_APP_N_0		: URI_M90E26_P_APP_N_1;
 	#else
-	int UriX = (eChan == 0) ? URI_M90E26_P_APP_L_0		: URI_M90E26_P_APP_L_1;
+	int UriX = (eCh == 0) ? URI_M90E26_P_APP_L_0		: URI_M90E26_P_APP_L_1;
 	#endif
 	for (int i = Uri0; i <= UriX; ++i) {
 		epw_t * psEW = &table_work[i];
@@ -320,9 +320,9 @@ int m90e26Config(void) {
 	};
 	ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH1));
 
-	for (s8_t eChan = 0; eChan < halHAS_M90E26; ++eChan) {
-		if ((m90e26Identify(eChan) != erSUCCESS) || (m90e26Init(eChan) != erSUCCESS)) {
-			SL_ERR("Failed to identify/init #%d", eChan);
+	for (s8_t eCh = 0; eCh < halHAS_M90E26; ++eCh) {
+		if ((m90e26Identify(eCh) != erSUCCESS) || (m90e26Init(eCh) != erSUCCESS)) {
+			SL_ERR("Failed to identify/init #%d", eCh);
 			return erFAILURE;
 		}
 	}
@@ -332,8 +332,8 @@ int m90e26Config(void) {
 /**
  * m90e26Init() -
  */
-int	m90e26Init(u8_t eChan) {
-	IF_myASSERT(debugPARAM, eChan < NumM90E26);
+int	m90e26Init(u8_t eCh) {
+	IF_myASSERT(debugPARAM, eCh < NumM90E26);
 	IF_SYSTIMER_INIT(debugTIMING, stM90EX6R, stMICROS, "M90E26RD", 1500, 15000);
 	IF_SYSTIMER_INIT(debugTIMING, stM90EX6W, stMICROS, "M90E26WR", 1500, 15000);
 	/* Check that blob with CALibration and ADJustment values exists
@@ -349,17 +349,17 @@ int	m90e26Init(u8_t eChan) {
 	}
 	vRtosFree(psCalib);
 
-	m90e26WriteU16(eChan, SOFTRESET, CODE_RESET);		// start with default values, not running, no valid values
-	m90e26LoadNVSConfig(eChan, 0);						// load config #0 from NVS blob as default
-	m90e26Cfg.Chan[eChan].L_Gain = 1;					// set default state
+	m90e26WriteU16(eCh, SOFTRESET, CODE_RESET);		// start with default values, not running, no valid values
+	m90e26LoadNVSConfig(eCh, 0);						// load config #0 from NVS blob as default
+	m90e26Cfg.Chan[eCh].L_Gain = 1;					// set default state
 	#if	(m90e26NEUTRAL > 0)
-	m90e26Cfg.Chan[eChan].N_Gain = 1;
+	m90e26Cfg.Chan[eCh].N_Gain = 1;
 	#endif
-	m90e26Cfg.Chan[eChan].E_Scale = 0;					// Wh not kWh
-	m90e26Cfg.Chan[eChan].P_Scale = 0;					// W not kW
-	m90e26Cfg.Chan[eChan].I_Scale = 0;					// A not mA
+	m90e26Cfg.Chan[eCh].E_Scale = 0;					// Wh not kWh
+	m90e26Cfg.Chan[eCh].P_Scale = 0;					// W not kW
+	m90e26Cfg.Chan[eCh].I_Scale = 0;					// A not mA
 	DevIDflag |= 1 << devID_M90E26;
-	return (m90e26GetSysStatus(eChan) & 0xF000) ? erFAILURE : erSUCCESS;
+	return (m90e26GetSysStatus(eCh) & 0xF000) ? erFAILURE : erSUCCESS;
 }
 
 // ########################### 32 bit value endpoint support functions #############################
@@ -450,9 +450,9 @@ int	m90e26SensePowerAngle(epw_t * psEW) {
 	return erSUCCESS;
 }
 
-inline u16_t m90e26GetSysStatus(u8_t eChan) { return m90e26ReadU16(eChan, SYS_STATUS); }
+inline u16_t m90e26GetSysStatus(u8_t eCh) { return m90e26ReadU16(eCh, SYS_STATUS); }
 
-inline u16_t m90e26GetMeterStatus(u8_t eChan)	{ return m90e26ReadU16(eChan, MET_STATUS); }
+inline u16_t m90e26GetMeterStatus(u8_t eCh)	{ return m90e26ReadU16(eCh, MET_STATUS); }
 
 // ############################### device reporting functions ######################################
 
@@ -562,8 +562,8 @@ extern char * pReqBuf;
 static void m90e26GuiUpdateInfo(u8_t Index) {
 	epw_t * psEW;
 	#if	(halHAS_M90E26 == 2)
-	u8_t eChan = Index / NumM90E26;
-	psEW = &table_work[(eChan == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1];
+	u8_t eCh = Index / NumM90E26;
+	psEW = &table_work[(eCh == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1];
 	#else
 	psEW = &table_work[URI_M90E26_E_ACT_FWD_0];
 	#endif
@@ -626,11 +626,11 @@ void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 
 /* ################################### OLD CODE #####################################
 
-u16_t m90e26CalcCRC(u8_t eChan, u8_t Addr0, int8_t Count) {
+u16_t m90e26CalcCRC(u8_t eCh, u8_t Addr0, int8_t Count) {
 	u8_t Lcrc = 0, Hcrc = 0;
 	u16_t RegData[Count];
 	for (int i = 0; i < Count; ++i) {				// read the range of registers
-		RegData[i] = m90e26Read(eChan, Addr0 + i);
+		RegData[i] = m90e26Read(eCh, Addr0 + i);
 	}
 	for (int i = 0; i < Count; ++i) {				// HI bytes: MOD256 sum & XOR
 		Lcrc += RegData[i] >> 8;
@@ -644,10 +644,10 @@ u16_t m90e26CalcCRC(u8_t eChan, u8_t Addr0, int8_t Count) {
 	return (Hcrc << 8) | Lcrc;
 }
 
-void	m90e26HandleCRC(u8_t eChan, u8_t RegAddr1, u8_t RegAddr2) {
-	IF_myASSERT(debugPARAM, eChan<NumM90E26 && ((RegAddr1==CALSTART && RegAddr2==CRC_1) || (RegAddr1==ADJSTART && RegAddr2==CRC_2)));
-	m90e26Write(eChan, RegAddr2, m90e26CalcCRC(eChan, RegAddr1 + 1, RegAddr2 - RegAddr1 - 1));
-	m90e26Write(eChan, RegAddr1, CODE_CHECK);
+void	m90e26HandleCRC(u8_t eCh, u8_t RegAddr1, u8_t RegAddr2) {
+	IF_myASSERT(debugPARAM, eCh<NumM90E26 && ((RegAddr1==CALSTART && RegAddr2==CRC_1) || (RegAddr1==ADJSTART && RegAddr2==CRC_2)));
+	m90e26Write(eCh, RegAddr2, m90e26CalcCRC(eCh, RegAddr1 + 1, RegAddr2 - RegAddr1 - 1));
+	m90e26Write(eCh, RegAddr1, CODE_CHECK);
 }
 
  */
