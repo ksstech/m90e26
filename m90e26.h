@@ -246,8 +246,8 @@ extern u8_t NumM90E26;
 void m90e26WriteU16(u8_t eChan, u8_t address, u16_t val);
 u16_t m90e26ReadU16(u8_t eChan, u8_t address);
 u16_t m90e26ReadModifyWrite(u8_t eChan, u8_t Addr, u16_t Value, u16_t Mask);
-s16_t m90e26ReadI16S(u8_t eChan, u8_t Reg);
-s16_t m90e26ReadI16TC(u8_t eChan, u8_t Reg);
+i16_t m90e26ReadI16S(u8_t eChan, u8_t Reg);
+i16_t m90e26ReadI16TC(u8_t eChan, u8_t Reg);
 u32_t m90e26ReadU32(u8_t eChan, u8_t Reg);
 i32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg);
 

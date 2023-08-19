@@ -226,15 +226,15 @@ u16_t m90e26ReadModifyWrite(u8_t eCh, u8_t Addr, u16_t Value, u16_t Mask) {
 	return CurValue;
 }
 
-s16_t m90e26ReadI16S(u8_t eCh, u8_t Reg) {
+i16_t m90e26ReadI16S(u8_t eCh, u8_t Reg) {
 	u16_t RawVal = m90e26ReadU16(eCh, Reg);
 	bool	Sign	= RawVal & 0x8000 ? true : false;
-	s16_t	i16Val	= RawVal & 0x7FFF;
-	s16_t	ConVal	= Sign == true ? -1 * i16Val : i16Val;
+	i16_t	i16Val	= RawVal & 0x7FFF;
+	i16_t	ConVal	= Sign == true ? -1 * i16Val : i16Val;
 	return ConVal;
 }
 
-s16_t m90e26ReadI16TC(u8_t eCh, u8_t Reg) { return ~m90e26ReadU16(eCh, Reg) + 1; }
+i16_t m90e26ReadI16TC(u8_t eCh, u8_t Reg) { return ~m90e26ReadU16(eCh, Reg) + 1; }
 
 u32_t m90e26ReadU32(u8_t eCh, u8_t Reg) {
 	#if	(m90e26READ_32BIT == 1)
