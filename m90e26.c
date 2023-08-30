@@ -357,8 +357,9 @@ int	m90e26Init(u8_t eCh) {
 	m90e26Cfg.Chan[eCh].E_Scale = 0;					// Wh not kWh
 	m90e26Cfg.Chan[eCh].P_Scale = 0;					// W not kW
 	m90e26Cfg.Chan[eCh].I_Scale = 0;					// A not mA
-	DevIDflag |= 1 << devID_M90E26;
-	return (m90e26GetSysStatus(eCh) & 0xF000) ? erFAILURE : erSUCCESS;
+	iRV = (m90e26GetSysStatus(eCh) & 0xF000) ? erFAILURE : erSUCCESS;
+	if (iRV > erFAILURE) xEventGroupSetBits(EventDevices, devMASK_M90E26);
+	return iRV;
 }
 
 // ########################### 32 bit value endpoint support functions #############################
@@ -608,9 +609,8 @@ void m90e26GuiTimerDeInit(void) {
 }
 
 void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
-	if (!bRtosTaskCheckOK(taskGUI_MASK) || 				// GUI not (yet) running or set to delete
-		!(DevIDflag & devID_SSD1306) ||
-		!(DevIDflag & devID_M90E26))					// M90E26 not yet initialized
+	// GUI not (yet) running or set to delete or M90E26/SSD1306 not yet initialized
+	if (!bRtosTaskCheckOK(taskGUI_MASK) || !bRtosCheckEVTdevices(devMASK_SSD1306|devMASK_M90E26))
 		return;
 	TickType_t CurTick = xTaskGetTickCount();
 	if (NextTick == 0)
