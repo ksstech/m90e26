@@ -610,21 +610,16 @@ void m90e26GuiTimerDeInit(void) {
 
 void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	// GUI not (yet) running or set to delete or M90E26/SSD1306 not yet initialized
-	if (!bRtosTaskCheckOK(taskGUI_MASK) || !bRtosCheckEVTdevices(devMASK_SSD1306|devMASK_M90E26))
+	if (!bRtosTaskCheckOK(taskGUI_MASK) || !bRtosCheckDevice(devMASK_SSD1306|devMASK_M90E26))
 		return;
 	TickType_t CurTick = xTaskGetTickCount();
-	if (NextTick == 0)
-		NextTick = CurTick;
-	else if (NextTick > CurTick)
-		return;
+	if (NextTick == 0) NextTick = CurTick;
+	else if (NextTick > CurTick) return;
 	NextTick = CurTick + m90e26STAT_INTVL;
-	if (ssd1306GetDisplayState()) {
-		m90e26GuiUpdateInfo(Index);
-	}
+	if (ssd1306GetDisplayState()) m90e26GuiUpdateInfo(Index);
 	++Index;
 	Index %= (NumM90E26 * 2);
-	if (Index == 0)
-		ssd1306StepContrast(m90e26STEP_CONTRAST);
+	if (Index == 0) ssd1306StepContrast(m90e26STEP_CONTRAST);
 }
 #endif	// halHAS_M90E26 && halHAS_SSD1306
 
