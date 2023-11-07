@@ -2,14 +2,15 @@
  * m90e26.c - Copyright (c) 2018-23 Andre M. Maree / KSS Technologies (Pty) Ltd.
  */
 
-#include "hal_variables.h"
+#include "hal_config.h"
 
 #if (halHAS_M90E26 > 0)
+#include "endpoints.h"
 #include "m90e26.h"
+#include "hal_options.h"
 #include "hal_spi.h"
 #include "hal_storage.h"
 #include "FreeRTOS_Support.h"
-#include "options.h"
 #include "printfx.h"
 #include "syslog.h"
 #include "systiming.h"					// timing debugging
