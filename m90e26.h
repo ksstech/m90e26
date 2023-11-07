@@ -5,9 +5,6 @@
 #pragma		once
 
 #include "definitions.h"
-#include "endpoints.h"
-#include "rules.h"
-
 #include "hal_gpio.h"
 
 #ifdef __cplusplus
@@ -265,17 +262,20 @@ void m90e26DataConvertAll(u8_t eChan) ;
 u16_t m90e26GetSysStatus(u8_t eChan) ;
 u16_t m90e26GetMeterStatus(u8_t eChan) ;
 
-int	m90e26SenseCurrent(epw_t *);
-int	m90e26SenseVoltage(epw_t *);
-int	m90e26SensePower(epw_t *);
-int	m90e26SenseEnergy(epw_t *);
-int	m90e26SenseFrequency(epw_t *);
-int	m90e26SensePowerFactor(epw_t *);
-int	m90e26SensePowerAngle(epw_t *);
+struct epw_t;
+int	m90e26SenseCurrent(struct epw_t *);
+int	m90e26SenseVoltage(struct epw_t *);
+int	m90e26SensePower(struct epw_t *);
+int	m90e26SenseEnergy(struct epw_t *);
+int	m90e26SenseFrequency(struct epw_t *);
+int	m90e26SensePowerFactor(struct epw_t *);
+int	m90e26SensePowerAngle(struct epw_t *);
 
-int	m90e26ConfigMode(rule_t * psRule, int xCur, int Xmax);
+struct rule_t;
+int	m90e26ConfigMode(struct rule_t * psRule, int xCur, int Xmax);
 
-int m90e26Report(report_t * psR);
+struct report_t;
+int m90e26Report(struct report_t * psR);
 
 void m90e26GuiTimerInit(void);
 void m90e26GuiTimerDeInit(void);
