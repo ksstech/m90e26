@@ -8,7 +8,7 @@
 #include "endpoints.h"
 #include "m90e26.h"
 #include "hal_options.h"
-#include "hal_spi.h"
+#include "hal_spi_master.h"
 #include "hal_storage.h"
 #include "FreeRTOS_Support.h"
 #include "printfx.h"
