@@ -2,7 +2,7 @@
  * m90e26.h
  */
 
-#pragma		once
+#pragma once
 
 #include "definitions.h"
 #include "hal_gpio.h"
@@ -119,7 +119,7 @@ enum {								// configuration registers
 	eQNolTh,
 	eMMode,
 	eCRC_1,
-} ;
+};
 
 enum {								// sensor data registers
 // Energy
@@ -148,7 +148,7 @@ enum {								// sensor data registers
  	eP_APP_N,
 #endif
 	eNUM_DATA_REG
- } ;
+ };
 
 enum display_mode {
 	eDM_DISABLED,
@@ -156,69 +156,69 @@ enum display_mode {
 	eDM_CURRENT,					// if current != 0, then include
 	eDM_BUTTON,
 	eDM_MAXIMUM,
-} ;
+};
 
 
 // ######################################### Structures ############################################
 
 typedef struct {
- 	u8_t	addr ;
- 	u8_t	flag ;
- 	u16_t	raw_val ;
-} conf_reg_t ;
-DUMB_STATIC_ASSERT(sizeof(conf_reg_t) == 4) ;
+ 	u8_t	addr;
+ 	u8_t	flag;
+ 	u16_t	raw_val;
+} conf_reg_t;
+DUMB_STATIC_ASSERT(sizeof(conf_reg_t) == 4);
 
 typedef union {
 	struct {
-		u8_t	r3 		: 1 ;			// LSB
-		u8_t	SagWarn	: 1 ;
-		u8_t	r2		: 3 ;
-		u8_t	RevPchg	: 1 ;
-		u8_t	RevQchg	: 1 ;
-		u8_t	LnChge	: 1 ;
-		u8_t	r1		: 4 ;
-		u8_t	AdjErr	: 2 ;
-		u8_t	CalErr	: 2 ;			// MSB
-	} ;
-	u16_t	val ;
-} m90e26system_stat_t ;
-DUMB_STATIC_ASSERT(sizeof(m90e26system_stat_t) == 2) ;
+		u8_t	r3 		: 1;			// LSB
+		u8_t	SagWarn	: 1;
+		u8_t	r2		: 3;
+		u8_t	RevPchg	: 1;
+		u8_t	RevQchg	: 1;
+		u8_t	LnChge	: 1;
+		u8_t	r1		: 4;
+		u8_t	AdjErr	: 2;
+		u8_t	CalErr	: 2;			// MSB
+	};
+	u16_t	val;
+} m90e26system_stat_t;
+DUMB_STATIC_ASSERT(sizeof(m90e26system_stat_t) == 2);
 
 typedef union {
 	struct {
-		u8_t	LNMode	: 2 ;			// LCB
-		u16_t	r1		: 9 ;
-		u8_t	Line	: 1 ;
-		u8_t	RevP	: 1 ;
-		u8_t	RevQ	: 1 ;
-		u8_t	Pnoload	: 1 ;
-		u8_t	Qnoload	: 1 ;			// MSB
-	} ;
-	u16_t	val ;
-} m90e26meter_stat_t ;
-DUMB_STATIC_ASSERT(sizeof(m90e26meter_stat_t) == 2) ;
+		u8_t	LNMode	: 2;			// LCB
+		u16_t	r1		: 9;
+		u8_t	Line	: 1;
+		u8_t	RevP	: 1;
+		u8_t	RevQ	: 1;
+		u8_t	Pnoload	: 1;
+		u8_t	Qnoload	: 1;			// MSB
+	};
+	u16_t	val;
+} m90e26meter_stat_t;
+DUMB_STATIC_ASSERT(sizeof(m90e26meter_stat_t) == 2);
 
 typedef union {
 	struct {
-		u8_t	Pthresh	: 4 ;			// LSB
-		u8_t	Zxcon	: 2 ;
-		u8_t	Rmod	: 1 ;
-		u8_t	Amod	: 1 ;
-		u8_t	DisHPF	: 2 ;
-		u8_t	LNSel	: 1 ;
-		u8_t	Ngain	: 2 ;
-		u8_t	Lgain	: 3 ;			// MSB
-	} ;
-	u16_t	val ;
+		u8_t	Pthresh	: 4;			// LSB
+		u8_t	Zxcon	: 2;
+		u8_t	Rmod	: 1;
+		u8_t	Amod	: 1;
+		u8_t	DisHPF	: 2;
+		u8_t	LNSel	: 1;
+		u8_t	Ngain	: 2;
+		u8_t	Lgain	: 3;			// MSB
+	};
+	u16_t	val;
 } m90e26meter_mode_t;
-DUMB_STATIC_ASSERT(sizeof(m90e26meter_mode_t) == 2) ;
+DUMB_STATIC_ASSERT(sizeof(m90e26meter_mode_t) == 2);
 
 typedef struct __attribute__((packed)) nvs_m90e26_t {
-	u16_t	calreg[11] ;
-	u16_t	adjreg[10] ;
-	u16_t	cfgreg[3] ;
-} nvs_m90e26_t ;
-DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48) ;
+	u16_t	calreg[11];
+	u16_t	adjreg[10];
+	u16_t	cfgreg[3];
+} nvs_m90e26_t;
+DUMB_STATIC_ASSERT(sizeof(nvs_m90e26_t) == 48);
 
 struct __attribute__((packed)) m90e26cfg_s{
 	struct __attribute__((packed)) {
@@ -248,19 +248,19 @@ i16_t m90e26ReadI16TC(u8_t eChan, u8_t Reg);
 u32_t m90e26ReadU32(u8_t eChan, u8_t Reg);
 i32_t m90e26ReadI32TC(u8_t eChan, u8_t Reg);
 
-int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx) ;
-void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val) ;
+int	m90e26LoadNVSConfig(u8_t eChan, u8_t Idx);
+void m90e26WriteRegister(u8_t eChan, u8_t Reg, u16_t Val);
 
 int m90e26Config(void);
-int	m90e26Identify(u8_t eDev) ;
-int	m90e26Init(u8_t eDev) ;
-void m90e26Calibrate(u8_t eChan) ;
+int	m90e26Identify(u8_t eDev);
+int	m90e26Init(u8_t eDev);
+void m90e26Calibrate(u8_t eChan);
 
-void m90e26DataReadAll(u8_t eChan) ;
-void m90e26DataConvertAll(u8_t eChan) ;
+void m90e26DataReadAll(u8_t eChan);
+void m90e26DataConvertAll(u8_t eChan);
 
-u16_t m90e26GetSysStatus(u8_t eChan) ;
-u16_t m90e26GetMeterStatus(u8_t eChan) ;
+u16_t m90e26GetSysStatus(u8_t eChan);
+u16_t m90e26GetMeterStatus(u8_t eChan);
 
 struct epw_t;
 int	m90e26SenseCurrent(struct epw_t *);
