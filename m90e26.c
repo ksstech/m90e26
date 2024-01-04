@@ -54,7 +54,7 @@
 // ###################################### Private variables #######################################
 
 spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
-#if	(halHAS_M90E26 > 0)
+	#if	(halHAS_M90E26 > 0)
 	[0] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
@@ -71,8 +71,8 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 		.pre_cb				= 0,						// no callback handler
 		.post_cb			= 0,
 	},
-#endif
-#if	(halHAS_M90E26 > 1)
+	#endif
+	#if	(halHAS_M90E26 > 1)
 	[1] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
@@ -89,11 +89,11 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 		.pre_cb				= 0,						// no callback handler
 		.post_cb			= 0,
 	},
-#endif
+	#endif
 };
 
 spi_device_handle_t	m90e26_handle[halHAS_M90E26];
-SemaphoreHandle_t	m90e26mutex[halHAS_M90E26];
+SemaphoreHandle_t m90e26mutex[halHAS_M90E26];
 u8_t NumM90E26 = halHAS_M90E26;
 
 struct m90e26cfg_s m90e26Cfg = { 0 };
