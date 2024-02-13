@@ -7,7 +7,6 @@
 #include "m90e26.h"
 #include "hal_options.h"
 #include "hal_rtc.h"
-#include "hal_spi_master.h"
 #include "hal_storage.h"
 #include "FreeRTOS_Support.h"
 #include "printfx.h"
@@ -15,6 +14,7 @@
 #include "systiming.h"					// timing debugging
 #include "x_errors_events.h"
 
+#include "driver/spi_master.h"
 #include "nvs.h"
 #include <string.h>
 
