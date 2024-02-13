@@ -1,10 +1,8 @@
-/*
- * m90e26.c - Copyright (c) 2018-24 Andre M. Maree / KSS Technologies (Pty) Ltd.
- */
+// m90e26.c - Copyright (c) 2018-24 Andre M. Maree / KSS Technologies (Pty) Ltd.
 
 #include "hal_config.h"
 
-#if (halHAS_M90E26 > 0)
+#if (HAL_M90E26 > 0)
 #include "endpoints.h"
 #include "m90e26.h"
 #include "hal_options.h"
@@ -53,8 +51,8 @@
 
 // ###################################### Private variables #######################################
 
-spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
-	#if	(halHAS_M90E26 > 0)
+spi_device_interface_config_t	m90e26_config[HAL_M90E26] = {
+	#if	(HAL_M90E26 > 0)
 	[0] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
@@ -72,7 +70,7 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 		.post_cb			= 0,
 	},
 	#endif
-	#if	(halHAS_M90E26 > 1)
+	#if	(HAL_M90E26 > 1)
 	[1] = {
 		.command_bits		= 0,
 		.address_bits		= 0,
@@ -92,9 +90,9 @@ spi_device_interface_config_t	m90e26_config[halHAS_M90E26] = {
 	#endif
 };
 
-spi_device_handle_t	m90e26_handle[halHAS_M90E26];
-SemaphoreHandle_t m90e26mutex[halHAS_M90E26];
-u8_t NumM90E26 = halHAS_M90E26;
+spi_device_handle_t	m90e26_handle[HAL_M90E26];
+SemaphoreHandle_t m90e26mutex[HAL_M90E26];
+u8_t NumM90E26 = HAL_M90E26;
 
 struct m90e26cfg_s m90e26Cfg = { 0 };
 
@@ -124,20 +122,20 @@ const u8_t	m90e26RegAddr[] = {
  *		0x00B9, 0xC1F3, 0xD139, 0x0000, 0x0000, 0x0000, 0x08BD, 0x0000, 0x0AEC, 0x0000, 0x9422 },
  *		0xD464, 0x6E49, 0x7530, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
  */
-nvs_m90e26_t nvsM90E26default[halHAS_M90E26] = {
-	#if	(halHAS_M90E26 > 0)
+nvs_m90e26_t nvsM90E26default[HAL_M90E26] = {
+	#if	(HAL_M90E26 > 0)
 	{ {	0x00B9, 0xC1F3, 0x0000, 0x0000, 0x0000, 0x0000, 0x08BD, 0x8100, 0x0AEC, 0x8100, 0x9422 },
 	  {	0x6C50, 0x7C2A, 0x7530, 0x0000, 0xF711, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 },
 	  {	0x0030, 0x1F2F, 0x0000	}, },
 	#endif
-	#if	(halHAS_M90E26 > 1)
+	#if	(HAL_M90E26 > 1)
 	{ {	0x00B9, 0xC1F3, 0x0000, 0x0000, 0x0000, 0x0000, 0x08BD, 0x8100, 0x0AEC, 0x8100, 0x9422 },
 	  {	0x6C50, 0x7C2A, 0x7530, 0x0000, 0xF800, 0xF400, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
   	  {	0x0030, 0x1F2F, 0x0000	}, },
 	#endif
 };
 
-#if (halHAS_SSD1306 > 0)
+#if (HAL_SSD1306 > 0)
 
 #define	m90e26STEP_CONTRAST		0x04
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
@@ -281,7 +279,7 @@ u8_t m90e26CalcInfo(epw_t * psEW) {
 		psEW->idx -= M90E26_NUMURI_0;
 		psEW->eChan++;
 	}
-	IF_myASSERT(debugRESULT, (psEW->idx < M90E26_NUMURI_0) && (psEW->eChan < halHAS_M90E26));
+	IF_myASSERT(debugRESULT, (psEW->idx < M90E26_NUMURI_0) && (psEW->eChan < HAL_M90E26));
 	return psEW->idx;
 }
 
@@ -322,7 +320,7 @@ int m90e26Config(void) {
 	};
 	ESP_ERROR_CHECK(spi_bus_initialize(SPI3_HOST, &buscfg, SPI_DMA_CH1));
 
-	for (s8_t eCh = 0; eCh < halHAS_M90E26; ++eCh) {
+	for (s8_t eCh = 0; eCh < HAL_M90E26; ++eCh) {
 		if ((m90e26Identify(eCh) != erSUCCESS) || (m90e26Init(eCh) != erSUCCESS)) {
 			SL_ERR("Failed to identify/init #%d", eCh);
 			return erFAILURE;
@@ -556,11 +554,11 @@ int m90e26Report(report_t * psR) {
 	iRV += xRtosReportTimer(psR, m90e26TH);
 	return iRV;
 }
-#endif	// halHAS_M90E26
+#endif	// HAL_M90E26
 
 // ############################################ GUI Support ########################################
 
-#if (halHAS_M90E26 > 0) && (halHAS_SSD1306 > 0)
+#if (HAL_M90E26 > 0) && (HAL_SSD1306 > 0)
 
 #include "ssd1306.h"
 
@@ -569,7 +567,7 @@ extern char * pReqBuf;
 
 static void m90e26GuiUpdateInfo(u8_t Index) {
 	epw_t * psEW;
-	#if	(halHAS_M90E26 == 2)
+	#if	(HAL_M90E26 == 2)
 	u8_t eCh = Index / NumM90E26;
 	psEW = &table_work[(eCh == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1];
 	#else
@@ -624,7 +622,7 @@ void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	Index %= (NumM90E26 * 2);
 	if (Index == 0) ssd1306StepContrast(m90e26STEP_CONTRAST);
 }
-#endif	// halHAS_M90E26 && halHAS_SSD1306
+#endif	// HAL_M90E26 && HAL_SSD1306
 
 /* ################################### OLD CODE #####################################
 

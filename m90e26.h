@@ -230,7 +230,7 @@ struct __attribute__((packed)) m90e26cfg_s{
 		u8_t	P_Scale	:1;								// 0 = W,	1 = Kw
 		u8_t	I_Scale	:1;								// 0 = A,	1 = KwHr
 		bool	state;
-	} Chan[halHAS_M90E26];
+	} Chan[HAL_M90E26];
 };
 
 // ####################################### Global variables ########################################
