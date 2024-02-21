@@ -3,7 +3,7 @@
 set( srcs "m90e26.c" )
 set( include_dirs "." )
 set( priv_include_dirs )
-set( requires "main" )
+set( requires "esp_driver_spi main" )
 set( priv_requires )
 
 idf_component_register(
