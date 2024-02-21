@@ -3,8 +3,8 @@
 set( srcs "m90e26.c" )
 set( include_dirs "." )
 set( priv_include_dirs )
-set( requires "ssd1306" )
-set( priv_requires "endpoints gui_basic printfx syslog systiming" )
+set( requires )
+set( priv_requires )
 
 idf_component_register(
 	SRCS ${srcs}
