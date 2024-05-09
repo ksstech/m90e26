@@ -163,7 +163,7 @@ void m90e26WriteU16(u8_t eCh, u8_t address, u16_t val) {
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eCh], &m90e26_buf));
 	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6W);
 	xRtosSemaphoreGive(&m90e26mutex[eCh]);
-	IF_P(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\r\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]);
+	IF_PX(debugWRITE, "TX: addr=%02x d0=%02x d1=%02x\r\n", m90e26_buf.tx_data[0], m90e26_buf.tx_data[1], m90e26_buf.tx_data[2]);
 }
 
 u16_t m90e26ReadU16(u8_t eCh, u8_t address) {
@@ -178,7 +178,7 @@ u16_t m90e26ReadU16(u8_t eCh, u8_t address) {
 	ESP_ERROR_CHECK(spi_device_transmit(m90e26_handle[eCh], &m90e26_buf));
 	IF_EXEC_1(debugTIMING, xSysTimerStop, stM90EX6R);
 	xRtosSemaphoreGive(&m90e26mutex[eCh]);
-	IF_P(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\r\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]);
+	IF_PX(debugREAD, "RX: addr=%02x  d0=%02x  d1=%02x  dx=%04x\r\n", m90e26_buf.tx_data[0], m90e26_buf.rx_data[1], m90e26_buf.rx_data[2], (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2]);
 	return (m90e26_buf.rx_data[1] << 8) | m90e26_buf.rx_data[2];
 }
 
@@ -216,13 +216,13 @@ void m90e26WriteRegister(u8_t eCh, u8_t Reg, u16_t Val) {
 }
 
 u16_t m90e26ReadModifyWrite(u8_t eCh, u8_t Addr, u16_t Value, u16_t Mask) {
-	IF_P(debugRMW, "  C=%d  R=%d  &=x%04X  |=x%04X", eCh, Addr, Value, Mask);
+	IF_PX(debugRMW, "  C=%d  R=%d  &=x%04X  |=x%04X", eCh, Addr, Value, Mask);
 	u16_t CurValue = m90e26ReadU16(eCh, Addr);
-	IF_P(debugRMW, "  V=x%04X", CurValue);
+	IF_PX(debugRMW, "  V=x%04X", CurValue);
 	CurValue &= ~Mask;
-	IF_P(debugRMW, " -> x%04X", CurValue);
+	IF_PX(debugRMW, " -> x%04X", CurValue);
 	CurValue |= Value;
-	IF_P(debugRMW, " -> x%04X\r\n", CurValue);
+	IF_PX(debugRMW, " -> x%04X\r\n", CurValue);
 	m90e26WriteRegister(eCh, Addr, CurValue);
 	return CurValue;
 }
@@ -368,30 +368,30 @@ int	m90e26Init(u8_t eCh) {
 int	m90e26SenseCurrent(epw_t * psEW) {
 	u8_t eIdx = m90e26CalcInfo(psEW);
 	float f32Val = (float) m90e26ReadU32(psEW->eChan, m90e26RegAddr[eIdx]);
-	IF_P(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEW->uri, eIdx, m90e26RegAddr[eIdx], psEW->eChan);
+	IF_PX(debugCURRENT, "Irms: URI=%d  Idx=%d  Reg=%02X  Ch=%d", psEW->uri, eIdx, m90e26RegAddr[eIdx], psEW->eChan);
 	if (m90e26Cfg.Chan[psEW->eChan].I_Scale == 0) {
 		f32Val /= 65536000.0;							// convert to Amp
-		IF_P(debugCURRENT, "  Val=%4.5fA", f32Val);
+		IF_PX(debugCURRENT, "  Val=%4.5fA", f32Val);
 	} else {
 		f32Val /= 65536.0;								// convert to mA
-		IF_P(debugCURRENT, "  Val=%4.5fmA", f32Val);
+		IF_PX(debugCURRENT, "  Val=%4.5fmA", f32Val);
 	}
 
 	#if	(m90e26NEUTRAL > 0)
 	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L || eIdx == eI_RMS_N);
 	if (eIdx == eI_RMS_L) {
 		f32Val /= m90e26Cfg.Chan[psEW->eChan].L_Gain;
-		IF_P(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain);
+		IF_PX(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain);
 	} else {
 		f32Val /= m90e26Cfg.Chan[psEW->eChan].N_Gain;
-		IF_P(debugCURRENT, "  Ngain=%d", m90e26Cfg.Chan[psEW->eChan].N_Gain);
+		IF_PX(debugCURRENT, "  Ngain=%d", m90e26Cfg.Chan[psEW->eChan].N_Gain);
 	}
 	#else
 	IF_myASSERT(debugRESULT, eIdx == eI_RMS_L);
 	f32Val /= m90e26Cfg.Chan[psEW->eChan].L_Gain;
-	IF_P(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain);
+	IF_PX(debugCURRENT, "  Lgain=%d", m90e26Cfg.Chan[psEW->eChan].L_Gain);
 	#endif
-	IF_P(debugCURRENT, "  Act=%4.5f\r\n", f32Val);
+	IF_PX(debugCURRENT, "  Act=%4.5f\r\n", f32Val);
 	xEpSetValue(psEW, (x32_t) f32Val);
 	return erSUCCESS;
 }
@@ -401,7 +401,7 @@ int	m90e26SenseVoltage(epw_t * psEW) {		// OK
 	float	f32Val	= (float) m90e26ReadU32(psEW->eChan, m90e26RegAddr[psEW->idx]);
 	f32Val			/= 6553600.0;						// Change mV to V
 	xEpSetValue(psEW, (x32_t) f32Val);
-//	IF_P(debugVOLTS, "Vrms: Ch=%d  Val=%9.3f\r\n", psEW->eChan, f32Val);
+//	IF_PX(debugVOLTS, "Vrms: Ch=%d  Val=%9.3f\r\n", psEW->eChan, f32Val);
 	return erSUCCESS;
 }
 
@@ -410,7 +410,7 @@ int	m90e26SensePower(epw_t * psEW) {
 	float	f32Val	= (float) m90e26ReadI32TC(psEW->eChan, m90e26RegAddr[psEW->idx]);
 	f32Val /= (m90e26Cfg.Chan[psEW->eChan].P_Scale == 1) ? 65536000.0 : 65536.0;
 	xEpSetValue(psEW, (x32_t) f32Val);
-	IF_P(debugPOWER, "Power: Ch=%d  Reg=0x%02X  Val=%9.3f\r\n", psEW->eChan, m90e26RegAddr[psEW->idx], f32Val);
+	IF_PX(debugPOWER, "Power: Ch=%d  Reg=0x%02X  Val=%9.3f\r\n", psEW->eChan, m90e26RegAddr[psEW->idx], f32Val);
 	return erSUCCESS;
 }
 
@@ -640,7 +640,7 @@ u16_t m90e26CalcCRC(u8_t eCh, u8_t Addr0, int8_t Count) {
 		Lcrc += RegData[i] & 0xFF;
 		Hcrc ^= RegData[i] & 0xFF;
 	}
-	IF_P(debugCRC, "CRC=%04x from %-'h\r\n", (Hcrc << 8) | Lcrc, Count * 2, RegData);
+	IF_PX(debugCRC, "CRC=%04x from %-'h\r\n", (Hcrc << 8) | Lcrc, Count * 2, RegData);
 	return (Hcrc << 8) | Lcrc;
 }
 
