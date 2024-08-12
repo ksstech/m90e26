@@ -251,7 +251,7 @@ int	m90e26LoadNVSConfig(u8_t eCh, u8_t Idx) {
 	IF_myASSERT(debugPARAM, Idx < m90e26CALIB_NUM);
 	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t);
 	nvs_m90e26_t * psCalib = malloc(SizeBlob);
-	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob, ESP_OK);
+	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob);
 	if (iRV == erSUCCESS) {
 		psCalib += Idx;								// write the FuncEnab, Vsag Threshold and PowerMode registers
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eCh, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i);
@@ -340,7 +340,7 @@ int	m90e26Init(u8_t eCh) {
 	 * If not existing, create with factory defaults as first record */
 	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t);
 	nvs_m90e26_t * psCalib = malloc(SizeBlob);
-	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob, ESP_ERR_NVS_NOT_FOUND);
+	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob);
 	if ((iRV != erSUCCESS) || (SizeBlob != (m90e26CALIB_NUM * sizeof(nvs_m90e26_t)))) {
 		memset(psCalib, 0, SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t));
 		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default));
