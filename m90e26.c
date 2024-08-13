@@ -252,8 +252,8 @@ int	m90e26LoadNVSConfig(u8_t eCh, u8_t Idx) {
 	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t);
 	nvs_m90e26_t * psCalib = malloc(SizeBlob);
 	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob);
-	if (iRV == erSUCCESS) {
-		psCalib += Idx;								// write the FuncEnab, Vsag Threshold and PowerMode registers
+	if (iRV == ESP_OK && SizeBlob == (m90e26CALIB_NUM * sizeof(nvs_m90e26_t))) {
+		psCalib += Idx;									// write the FuncEnab, Vsag Threshold and PowerMode registers
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, cfgreg); m90e26WriteU16(eCh, i+FUNC_ENAB, psCalib->cfgreg[i]), ++i);
 
 		m90e26WriteU16(eCh, CALSTART, CODE_START);		// write the configuration registers with METER calibration data
@@ -264,7 +264,7 @@ int	m90e26LoadNVSConfig(u8_t eCh, u8_t Idx) {
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eCh, i+U_GAIN, psCalib->adjreg[i]), ++i);
 		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eCh, ADJSTART, CODE_CHECK);
 	} else {
-		SL_ERR("Failed Ch=%d config=%d", eCh, Idx);
+		SL_ERR("Failed Ch=%d Cfg=%d iRV=%d", eCh, Idx, iRV);
 	}
 	free (psCalib);
 	return iRV;
@@ -341,11 +341,11 @@ int	m90e26Init(u8_t eCh) {
 	size_t	SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t);
 	nvs_m90e26_t * psCalib = malloc(SizeBlob);
 	int iRV = halFlashReadBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, &SizeBlob);
-	if ((iRV != erSUCCESS) || (SizeBlob != (m90e26CALIB_NUM * sizeof(nvs_m90e26_t)))) {
+	if ((iRV != ESP_OK) || (SizeBlob != (m90e26CALIB_NUM * sizeof(nvs_m90e26_t)))) {
 		memset(psCalib, 0, SizeBlob = m90e26CALIB_NUM * sizeof(nvs_m90e26_t));
 		memcpy(psCalib, &nvsM90E26default, sizeof(nvsM90E26default));
-		iRV = halFlashWriteBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, SizeBlob);
-		IF_myASSERT(debugRESULT, iRV == erSUCCESS);
+		iRV = halFlashWriteBlob(halFLASH_STORE, m90e26STORAGE_KEY, psCalib, m90e26CALIB_NUM * sizeof(nvs_m90e26_t));
+		IF_myASSERT(debugRESULT, iRV == ESP_OK);
 	}
 	free(psCalib);
 
