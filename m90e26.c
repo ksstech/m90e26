@@ -494,7 +494,7 @@ int m90e26ReportAdjust(report_t * psR) {
 	for (int eCh = 0; eCh < NumM90E26; ++eCh) {
 		iRV += wprintfx(psR, "%2d", eCh);
 		for (int i = ADJSTART; i <= CRC_2; iRV += wprintfx(psR, "  0x%04X", m90e26ReadU16(eCh, i++)));
-		iRV += wprintfx(psR, strCRLF);
+		iRV += wprintfx(psR, strNL);
 	}
 	return iRV;
 }
@@ -515,7 +515,7 @@ int m90e26ReportData(report_t * psR) {
 				iRV += wprintfx(psR, "  0x%04X", m90e26ReadU16(eCh, m90e26DataReg[i]));
 			}
 		}
-		iRV += wprintfx(psR, strCRLF);
+		iRV += wprintfx(psR, strNL);
 	}
 	return iRV;
 }
@@ -541,7 +541,7 @@ int m90e26ReportStatus(report_t * psR) {
 		iRV += wprintfx(psR, MeterStatus.LNMode==3 ? "    Flex"	:
 			  MeterStatus.LNMode==2 ? "    Both"	:
 			  MeterStatus.LNMode==1 ? "    Live"	: "  Tamper");
-		iRV += wprintfx(psR, strCRLF);
+		iRV += wprintfx(psR, strNL);
 	}
 	return iRV;
 }
