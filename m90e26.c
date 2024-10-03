@@ -349,9 +349,9 @@ int	m90e26Init(u8_t eCh) {
 	}
 	free(psCalib);
 
-	m90e26WriteU16(eCh, SOFTRESET, CODE_RESET);		// start with default values, not running, no valid values
+	m90e26WriteU16(eCh, SOFTRESET, CODE_RESET);			// start with default values, not running, no valid values
 	m90e26LoadNVSConfig(eCh, 0);						// load config #0 from NVS blob as default
-	m90e26Cfg.Chan[eCh].L_Gain = 1;					// set default state
+	m90e26Cfg.Chan[eCh].L_Gain = 1;						// set default state
 	#if	(m90e26NEUTRAL > 0)
 	m90e26Cfg.Chan[eCh].N_Gain = 1;
 	#endif
@@ -359,7 +359,8 @@ int	m90e26Init(u8_t eCh) {
 	m90e26Cfg.Chan[eCh].P_Scale = 0;					// W not kW
 	m90e26Cfg.Chan[eCh].I_Scale = 0;					// A not mA
 	iRV = (m90e26GetSysStatus(eCh) & 0xF000) ? erFAILURE : erSUCCESS;
-	if (iRV > erFAILURE) xEventGroupSetBits(EventDevices, devMASK_M90E26);
+	if (iRV > erFAILURE)
+		xEventGroupSetBits(EventDevices, devMASK_M90E26);
 	return iRV;
 }
 
