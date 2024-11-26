@@ -302,7 +302,7 @@ int	m90e26Identify(u8_t eCh) {
 		if (i < (Uri0 + 6)) {
 			psEW->var.def.cv.sumX	= 1;
 		}
-		psEW->var.def = SETDEF_CVAR(0, 0, vtVALUE, cvF32, 1, 0);
+		psEW->var.def = SETDEF_CVAR(0,0,vtVALUE,cvF32,1,0,0);
 		psEW->Tsns = psEW->Rsns = M90E26_T_SNS;		// start sensing
 	}
 	return erSUCCESS;
