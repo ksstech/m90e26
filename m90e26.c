@@ -287,7 +287,7 @@ u8_t m90e26CalcInfo(epw_t * psEW) {
 
 int	m90e26Identify(u8_t eCh) {
 	IF_myASSERT(debugPARAM, eCh < NumM90E26);
-	ESP_ERROR_CHECK(spi_bus_add_device(VSPI_HOST, &m90e26_config[eCh], &m90e26_handle[eCh]));
+	ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &m90e26_config[eCh], &m90e26_handle[eCh]));
 	m90e26mutex[eCh]	= xSemaphoreCreateMutex();
 	IF_myASSERT(debugRESULT, m90e26mutex[eCh]);
 
