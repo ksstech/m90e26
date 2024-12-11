@@ -229,9 +229,9 @@ u16_t m90e26ReadModifyWrite(u8_t eCh, u8_t Addr, u16_t Value, u16_t Mask) {
 
 i16_t m90e26ReadI16S(u8_t eCh, u8_t Reg) {
 	u16_t RawVal = m90e26ReadU16(eCh, Reg);
-	bool	Sign	= RawVal & 0x8000 ? true : false;
-	i16_t	i16Val	= RawVal & 0x7FFF;
-	i16_t	ConVal	= Sign == true ? -1 * i16Val : i16Val;
+	bool Sign = RawVal & 0x8000 ? true : false;
+	i16_t i16Val = RawVal & 0x7FFF;
+	i16_t ConVal = Sign == true ? -1 * i16Val : i16Val;
 	return ConVal;
 }
 
@@ -299,9 +299,7 @@ int	m90e26Identify(u8_t eCh) {
 	#endif
 	for (int i = Uri0; i <= UriX; ++i) {
 		epw_t * psEW = &table_work[i];
-		if (i < (Uri0 + 6)) {
-			psEW->var.def.cv.sumX	= 1;
-		}
+		if (i < (Uri0 + 6)) psEW->var.def.cv.sumX = 1;
 		psEW->var.def = SETDEF_CVAR(0,0,vtVALUE,cvF32,1,0,0);
 		psEW->Tsns = psEW->Rsns = M90E26_T_SNS;		// start sensing
 	}
