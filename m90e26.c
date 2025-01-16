@@ -348,7 +348,7 @@ int	m90e26Init(u8_t eCh) {
 	m90e26Cfg.Chan[eCh].P_Scale = 0;					// W not kW
 	m90e26Cfg.Chan[eCh].I_Scale = 0;					// A not mA
 	iRV = (m90e26GetSysStatus(eCh) & 0xF000) ? erFAILURE : erSUCCESS;
-	if (iRV > erFAILURE) xRtosSetDevice(devMASK_M90E26);
+	if (iRV > erFAILURE) halEventUpdateDevice(devMASK_M90E26, 1);
 	return iRV;
 }
 
