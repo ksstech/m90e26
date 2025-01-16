@@ -135,17 +135,8 @@ nvs_m90e26_t nvsM90E26default[HAL_M90E26] = {
 	#endif
 };
 
-#if (HAL_SSD1306 > 0)
-
 #define	m90e26STEP_CONTRAST		0x04
 #define	m90e26STAT_INTVL		pdMS_TO_TICKS(2 * MILLIS_IN_SECOND)
-
-static TickType_t NextTick = 0;
-static u8_t Index = 0;
-static TimerHandle_t m90e26TH = { 0 };
-static StaticTimer_t m90e26TS = { 0 };
-
-#endif
 
 // ############################### common support routines #########################################
 
@@ -453,6 +444,80 @@ inline u16_t m90e26GetSysStatus(u8_t eCh) { return m90e26ReadU16(eCh, SYS_STATUS
 
 inline u16_t m90e26GetMeterStatus(u8_t eCh)	{ return m90e26ReadU16(eCh, MET_STATUS); }
 
+// ############################################ GUI Support ########################################
+
+#if (HAL_SSD1306 > 0 && buildGUI > 0)
+
+#include "ssd1306.h"
+
+static TickType_t NextTick = 0;
+static u8_t Index = 0;
+static TimerHandle_t m90e26TH = { 0 };
+static StaticTimer_t m90e26TS = { 0 };
+
+extern char DispBuf[];
+extern char * pReqBuf;
+
+static void m90e26GuiUpdateInfo(u8_t Index) {
+	epw_t * psEW;
+	#if	(HAL_M90E26 == 2)
+	u8_t eCh = Index / NumM90E26;
+	psEW = &table_work[(eCh == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1];
+	#else
+	psEW = &table_work[URI_M90E26_E_ACT_FWD_0];
+	#endif
+	if ((Index % 2) == 0) {
+		snprintfx(DispBuf, halLCD_MAX_CHAR,
+		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
+		xCV_GetValueScaled(&psEW[eVOLTS].var, NULL),
+		xCV_GetValueScaled(&psEW[eFREQ].var, NULL),
+		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_ACT_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
+		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL));
+	} else {
+		snprintfx(DispBuf, halLCD_MAX_CHAR,
+		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
+		xCV_GetValueScaled(&psEW[eE_ACT_FWD].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_ACT_REV].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_FWD].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
+		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL));
+	}
+	pReqBuf = DispBuf;				// enable next text display
+}
+
+void m90e26GuiTimerInit(void) {
+	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
+	IF_myASSERT(debugRESULT, m90e26TH != 0);
+	int iRV = xTimerStart(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+}
+
+void m90e26GuiTimerDeInit(void) {
+	int iRV = xTimerStop(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+	iRV = xTimerDelete(m90e26TH, 0);
+	IF_myASSERT(debugRESULT, iRV != pdFAIL);
+}
+
+void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
+	// GUI not (yet) running or set to delete or M90E26/SSD1306 not yet initialized
+	if (halEventCheckTasksOK(taskGUI_MASK) == 0 || xRtosCheckDevice(devMASK_SSD1306|devMASK_M90E26) == 0)
+		return;
+	TickType_t CurTick = xTaskGetTickCount();
+	if (NextTick == 0) NextTick = CurTick;
+	else if (NextTick > CurTick) return;
+	NextTick = CurTick + m90e26STAT_INTVL;
+	if (ssd1306GetDisplayState()) m90e26GuiUpdateInfo(Index);
+	++Index;
+	Index %= (NumM90E26 * 2);
+	if (Index == 0) ssd1306StepContrast(m90e26STEP_CONTRAST);
+}
+
+#endif	// HAL_SSD1306 && buildGUI
+
 // ############################### device reporting functions ######################################
 
 #define	HDR_CALIB		"Ch CALSTRT PLconsH PLconsL   Lgain    Lphi   Ngain    Nphi PStrtTh  PNolTh QStrtTh  QNolTh   MMode   CRC_1"
@@ -549,78 +614,14 @@ int m90e26Report(report_t * psR) {
 	iRV += m90e26ReportAdjust(psR);
 	iRV += m90e26ReportData(psR);
 	iRV += m90e26ReportStatus(psR);
+#if (HAL_SSD1306 > 0 && halGUI > 0)
 	iRV += xRtosReportTimer(psR, m90e26TH);
+#endif
 	return iRV;
 }
+
 #endif	// HAL_M90E26
 
-// ############################################ GUI Support ########################################
-
-#if (HAL_M90E26 > 0) && (HAL_SSD1306 > 0)
-
-#include "ssd1306.h"
-
-extern char DispBuf[];
-extern char * pReqBuf;
-
-static void m90e26GuiUpdateInfo(u8_t Index) {
-	epw_t * psEW;
-	#if	(HAL_M90E26 == 2)
-	u8_t eCh = Index / NumM90E26;
-	psEW = &table_work[(eCh == 0) ? URI_M90E26_E_ACT_FWD_0 : URI_M90E26_E_ACT_FWD_1];
-	#else
-	psEW = &table_work[URI_M90E26_E_ACT_FWD_0];
-	#endif
-	if ((Index % 2) == 0) {
-		snprintfx(DispBuf, halLCD_MAX_CHAR,
-		"Vo%8.3f" "Fr%8.3f" "Ir%8.3f" "Pa%8.3f" "An%8.3f" "Fa%8.3f",
-		xCV_GetValueScaled(&psEW[eVOLTS].var, NULL),
-		xCV_GetValueScaled(&psEW[eFREQ].var, NULL),
-		xCV_GetValueScaled(&psEW[eI_RMS_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_ACT_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_ANGLE_L].var, NULL),
-		xCV_GetValueScaled(&psEW[eP_FACTOR_L].var, NULL));
-	} else {
-		snprintfx(DispBuf, halLCD_MAX_CHAR,
-		"Af%8.3f" "Ar%8.3f" "Aa%8.3f" "Rf%8.3f" "Rr%8.3f" "Ra%8.3f",
-		xCV_GetValueScaled(&psEW[eE_ACT_FWD].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_ACT_REV].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_ACT_ABS].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_FWD].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_REV].var, NULL),
-		xCV_GetValueScaled(&psEW[eE_REACT_ABS].var, NULL));
-	}
-	pReqBuf = DispBuf;				// enable next text display
-}
-
-void m90e26GuiTimerInit(void) {
-	m90e26TH = xTimerCreateStatic("m90e26", pdMS_TO_TICKS(2000), pdTRUE, &m90e26TH, m90e26GuiTimerHandler, &m90e26TS);
-	IF_myASSERT(debugRESULT, m90e26TH != 0);
-	int iRV = xTimerStart(m90e26TH, 0);
-	IF_myASSERT(debugRESULT, iRV != pdFAIL);
-}
-
-void m90e26GuiTimerDeInit(void) {
-	int iRV = xTimerStop(m90e26TH, 0);
-	IF_myASSERT(debugRESULT, iRV != pdFAIL);
-	iRV = xTimerDelete(m90e26TH, 0);
-	IF_myASSERT(debugRESULT, iRV != pdFAIL);
-}
-
-void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
-	// GUI not (yet) running or set to delete or M90E26/SSD1306 not yet initialized
-	if (!bRtosTaskCheckOK(taskGUI_MASK) || !xRtosCheckDevice(devMASK_SSD1306|devMASK_M90E26))
-		return;
-	TickType_t CurTick = xTaskGetTickCount();
-	if (NextTick == 0) NextTick = CurTick;
-	else if (NextTick > CurTick) return;
-	NextTick = CurTick + m90e26STAT_INTVL;
-	if (ssd1306GetDisplayState()) m90e26GuiUpdateInfo(Index);
-	++Index;
-	Index %= (NumM90E26 * 2);
-	if (Index == 0) ssd1306StepContrast(m90e26STEP_CONTRAST);
-}
-#endif	// HAL_M90E26 && HAL_SSD1306
 
 /* ################################### OLD CODE #####################################
 

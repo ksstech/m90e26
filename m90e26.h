@@ -102,6 +102,7 @@ extern "C" {
 
 // Number of sets of calibration parameters stored in NVS
 #define m90e26CALIB_NUM				4
+#define m90e26CALIB_CHECK			1
 
 // ######################################## Enumerations ###########################################
 
