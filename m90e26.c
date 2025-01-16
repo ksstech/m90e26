@@ -249,11 +249,11 @@ int	m90e26LoadNVSConfig(u8_t eCh, u8_t Idx) {
 
 		m90e26WriteU16(eCh, CALSTART, CODE_START);		// write the configuration registers with METER calibration data
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, calreg); m90e26WriteRegister(eCh, i+PLconstH, psCalib->calreg[i]), ++i);
-		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eCh, CALSTART, CODE_CHECK);
+		IF_EXEC_3(m90e26CALIB_CHECK > 0, m90e26WriteU16, eCh, CALSTART, CODE_CHECK);
 
 		m90e26WriteU16(eCh, ADJSTART, CODE_START);		// write the configuration registers with MEASURE calibration data
 		for (int i = 0; i < NO_ELEM(nvs_m90e26_t, adjreg); m90e26WriteRegister(eCh, i+U_GAIN, psCalib->adjreg[i]), ++i);
-		IF_EXEC_3(configPRODUCTION == 1, m90e26WriteU16, eCh, ADJSTART, CODE_CHECK);
+		IF_EXEC_3(m90e26CALIB_CHECK > 0, m90e26WriteU16, eCh, ADJSTART, CODE_CHECK);
 	} else {
 		SL_ERR("Failed Ch=%d Cfg=%d iRV=%d", eCh, Idx, iRV);
 	}
