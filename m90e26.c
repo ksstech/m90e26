@@ -504,7 +504,7 @@ void m90e26GuiTimerDeInit(void) {
 
 void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	// GUI not (yet) running or set to delete or M90E26/SSD1306 not yet initialized
-	if (halEventCheckTasksOK(taskGUI_MASK) == 0 || xRtosCheckDevice(devMASK_SSD1306|devMASK_M90E26) == 0)
+	if (halEventCheckTasksOK(taskGUI_MASK) == 0 || halEventCheckDevice(devMASK_SSD1306|devMASK_M90E26) == 0)
 		return;
 	TickType_t CurTick = xTaskGetTickCount();
 	if (NextTick == 0) NextTick = CurTick;
