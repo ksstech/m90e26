@@ -1,4 +1,4 @@
-// m90e26.c - Copyright (c) 2018-24 Andre M. Maree / KSS Technologies (Pty) Ltd.
+// m90e26.c - Copyright (c) 2018-25 Andre M. Maree / KSS Technologies (Pty) Ltd.
 
 #include "hal_platform.h"
 
