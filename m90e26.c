@@ -180,9 +180,9 @@ void m90e26WriteRegister(u8_t eCh, u8_t Reg, u16_t Val) {
 		} else {
 			m90e26WriteU16(eCh, Reg, Val);				// write new value & update CRC
 			m90e26WriteU16(eCh, CRC_1, m90e26ReadU16(eCh, CRC_1));
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "Before: #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
 			nvsM90E26default[eCh].calreg[Reg-PLconstH] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "After : #%d %'-hY\r\n", Reg-PLconstH, SO_MEM(nvs_m90e26_t, calreg), &nvsM90E26default[eCh].calreg);
 		}
 	} else if (INRANGE(U_GAIN, Reg, Q_OFST_N)) {
 		if (m90e26ReadU16(eCh, ADJSTART) != CODE_START) {
@@ -190,16 +190,16 @@ void m90e26WriteRegister(u8_t eCh, u8_t Reg, u16_t Val) {
 		} else {
 			m90e26WriteU16(eCh, Reg, Val);				// write new value & update CRC
 			m90e26WriteU16(eCh, CRC_2, m90e26ReadU16(eCh, CRC_2));
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "Before: #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
 			nvsM90E26default[eCh].adjreg[Reg-U_GAIN] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "After : #%d %'-hY\r\n", Reg-U_GAIN, SO_MEM(nvs_m90e26_t, adjreg), &nvsM90E26default[eCh].adjreg);
 		}
 	} else if (Reg == SOFTRESET || INRANGE(FUNC_ENAB, Reg, POWER_MODE) || Reg == CALSTART || Reg == ADJSTART) {
 		m90e26WriteU16(eCh, Reg, Val);				// write new value
 		if (INRANGE(FUNC_ENAB, Reg, POWER_MODE)) {
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "Before: #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "Before: #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
 			nvsM90E26default[eCh].cfgreg[Reg-FUNC_ENAB] = Val;
-			IF_PX(debugTRACK && ioB1GET(ioM90write), "After : #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
+			IF_PX(debugTRACK && xOptionGet(ioM90write), "After : #%d %'-hY\r\n", Reg-FUNC_ENAB, SO_MEM(nvs_m90e26_t, cfgreg), &nvsM90E26default[eCh].cfgreg);
 		}
 	} else {
 		SL_ERR("Invalid register=0x%02X", Reg);
