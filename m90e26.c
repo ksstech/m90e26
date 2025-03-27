@@ -9,7 +9,7 @@
 #include "hal_rtc.h"
 #include "hal_flash.h"
 #include "FreeRTOS_Support.h"
-#include "printfx.h"
+#include "report.h"
 #include "syslog.h"
 #include "systiming.h"					// timing debugging
 #include "errors_events.h"
