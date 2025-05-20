@@ -5,7 +5,6 @@
 #if (HAL_M90E26 > 0)
 #include "endpoints.h"
 #include "m90e26.h"
-#include "hal_options.h"
 #include "hal_rtc.h"
 #include "hal_flash.h"
 #include "FreeRTOS_Support.h"
