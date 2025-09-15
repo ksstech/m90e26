@@ -445,7 +445,7 @@ inline u16_t m90e26GetMeterStatus(u8_t eCh)	{ return m90e26ReadU16(eCh, MET_STAT
 
 // ############################################ GUI Support ########################################
 
-#if (HAL_SSD1306 > 0 && appGUI > 0)
+#if (HAL_SSD1306 > 0 && cmakeGUI > 0)
 
 #include "ssd1306.h"
 
@@ -515,7 +515,7 @@ void m90e26GuiTimerHandler(TimerHandle_t xTimer) {
 	if (Index == 0) ssd1306StepContrast(m90e26STEP_CONTRAST);
 }
 
-#endif	// HAL_SSD1306 && appGUI
+#endif	// HAL_SSD1306 && cmakeGUI
 
 // ############################### device reporting functions ######################################
 
